@@ -113,31 +113,42 @@ export class Player {
     
     // Lightsaber handle
     const handleMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x4a4a4a,
-      metalness: 0.8,
-      roughness: 0.3,
+      color: 0x2a2a2a, // Darker handle
+      metalness: 0.9,
+      roughness: 0.4,
     });
     const handleGeometry = new THREE.CylinderGeometry(0.05, 0.06, 0.4);
     const handle = new THREE.Mesh(handleGeometry, handleMaterial);
     handle.position.y = -0.2;
     this.lightsaber.add(handle);
 
+    // Emitter
+    const emitterGeometry = new THREE.CylinderGeometry(0.06, 0.07, 0.1);
+    const emitterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        metalness: 1.0,
+        roughness: 0.2
+    });
+    const emitter = new THREE.Mesh(emitterGeometry, emitterMaterial);
+    emitter.position.y = 0.05;
+    handle.add(emitter);
+
     // Activator button
     const activatorGeometry = new THREE.BoxGeometry(0.02, 0.05, 0.02);
     const activatorMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
-        emissive: 0xaa0000,
-        emissiveIntensity: 1,
+        emissive: 0xcc0000,
+        emissiveIntensity: 1.5,
     });
     const activator = new THREE.Mesh(activatorGeometry, activatorMaterial);
-    activator.position.set(0, -0.1, 0.05);
+    activator.position.set(0, -0.1, 0.06);
     handle.add(activator);
 
     // Decorative rings
     const ringGeometry = new THREE.TorusGeometry(0.055, 0.005, 16, 32);
     const ringMaterial = new THREE.MeshStandardMaterial({
-        color: 0x222222,
-        metalness: 0.9,
+        color: 0x111111,
+        metalness: 1.0,
         roughness: 0.2,
     });
 
@@ -150,71 +161,60 @@ export class Player {
     ring2.position.y = -0.15;
     handle.add(ring2);
     
-    // Lightsaber blade - use MeshPhongMaterial for emissive properties
-    const bladeGeometry = new THREE.CylinderGeometry(0.013, 0.013, 1.5);
+    // Lightsaber blade - new blue color and tapered
+    const bladeGeometry = new THREE.CylinderGeometry(0.02, 0.015, 1.5, 8); // Tapered
     const bladeMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0x00ffff, 
+      color: 0x55aaff, 
       transparent: true,
       opacity: 0.9,
-      emissive: 0x00ffff,
-      emissiveIntensity: 1.5
+      emissive: 0x3388ff,
+      emissiveIntensity: 2.0
     });
     const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
-    blade.position.y = 0.6;
+    blade.position.y = 0.8; // Adjust position because of tapering
     blade.name = 'blade';
     this.lightsaber.add(blade);
     
-    // Add glow effect - use MeshPhongMaterial for emissive properties
-    const glowGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5);
+    // Glow effect - adjusted for blue
+    const glowGeometry = new THREE.CylinderGeometry(0.06, 0.05, 1.5, 8); // Tapered glow
     const glowMaterial = new THREE.MeshPhongMaterial({
-      color: 0x00ffff,
+      color: 0x3388ff,
       transparent: true,
-      opacity: 0.6,
-      emissive: 0x004444,
-      emissiveIntensity: 1.2
-    });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-    glow.position.y = 0.6;
-    this.lightsaber.add(glow);
-    
-    // Add outer glow for more dramatic effect - use MeshPhongMaterial for emissive properties
-    const outerGlowGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1.6);
-    const outerGlowMaterial = new THREE.MeshPhongMaterial({
-      color: 0x88ffff,
-      transparent: true,
-      opacity: 0.4,
-      emissive: 0x002222,
-      emissiveIntensity: 0.8
-    });
-    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
-    outerGlow.position.y = 0.6;
-    this.lightsaber.add(outerGlow);
-    
-    // Add lightsaber core for more intensity - use MeshPhongMaterial for emissive properties
-    const coreGeometry = new THREE.CylinderGeometry(0.01, 0.01, 1.5);
-    const coreMaterial = new THREE.MeshPhongMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 1.0,
-      emissive: 0xffffff,
-      emissiveIntensity: 2.0
-    });
-    const core = new THREE.Mesh(coreGeometry, coreMaterial);
-    core.position.y = 0.6;
-    this.lightsaber.add(core);
-    
-    // Add additional bright glow effect - use MeshPhongMaterial for emissive properties
-    const superGlowGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1.8);
-    const superGlowMaterial = new THREE.MeshPhongMaterial({
-      color: 0xaaffff,
-      transparent: true,
-      opacity: 0.3,
-      emissive: 0x003333,
+      opacity: 0.5,
+      emissive: 0x0033aa,
       emissiveIntensity: 1.5
     });
-    const superGlow = new THREE.Mesh(superGlowGeometry, superGlowMaterial);
-    superGlow.position.y = 0.6;
-    this.lightsaber.add(superGlow);
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.y = 0.8;
+    this.lightsaber.add(glow);
+    
+    // Lightsaber core - brighter
+    const coreGeometry = new THREE.CylinderGeometry(0.008, 0.008, 1.52, 6);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      transparent: false,
+      opacity: 1.0,
+      emissive: 0xffffff,
+      emissiveIntensity: 3.0
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    core.position.y = 0.8;
+    this.lightsaber.add(core);
+    
+    // Add outer glow for more dramatic effect
+    const outerGlowGeometry = new THREE.CylinderGeometry(0.1, 0.08, 1.6, 8); // Tapered
+    const outerGlowMaterial = new THREE.MeshPhongMaterial({
+      color: 0x88ccff,
+      transparent: true,
+      opacity: 0.25,
+      emissive: 0x001133,
+      emissiveIntensity: 1.0,
+      side: THREE.FrontSide,
+      blending: THREE.AdditiveBlending,
+    });
+    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+    outerGlow.position.y = 0.8;
+    this.lightsaber.add(outerGlow);
     
     // Position lightsaber relative to camera
     this.lightsaber.position.set(-0.4, -0.3, -0.8);
@@ -804,28 +804,34 @@ export class Player {
       // Attack animation
       const blade = this.lightsaber.getObjectByName('blade') as THREE.Mesh;
       if (blade) {
-        // Quick slash animation
-        const startRotation = this.lightsaber.rotation.z;
-        const targetRotation = startRotation - Math.PI / 2; // Negative for right-to-left motion
+        // Diagonal slash animation
+        const startRotation = this.lightsaber.rotation.clone();
+        const targetRotation = startRotation.clone();
+        targetRotation.z -= Math.PI / 1.5; // Swing further left
+        targetRotation.x -= Math.PI / 4;  // Swing down
         
-        const animate = (progress: number) => {
-          if (this.lightsaber) {
-            this.lightsaber.rotation.z = startRotation + (targetRotation - startRotation) * progress;
-            
-            if (progress < 1) {
-              requestAnimationFrame(() => animate(progress + 0.1));
-            } else {
-              // Reset rotation after attack
-              setTimeout(() => {
-                if (this.lightsaber) {
-                  this.lightsaber.rotation.z = startRotation;
-                }
-              }, 100);
-            }
+        const duration = 120; // ms
+        const startTime = Date.now();
+
+        const animate = () => {
+          if (!this.lightsaber) return;
+
+          const elapsed = Date.now() - startTime;
+          let progress = elapsed / duration;
+          
+          if (progress < 1) {
+            // Ease-out quadratic
+            const easedProgress = progress * (2 - progress);
+            this.lightsaber.rotation.z = startRotation.z + (targetRotation.z - startRotation.z) * easedProgress;
+            this.lightsaber.rotation.x = startRotation.x + (targetRotation.x - startRotation.x) * easedProgress;
+            requestAnimationFrame(animate);
+          } else {
+            // Reset rotation after attack
+            this.lightsaber.rotation.copy(startRotation);
           }
         };
         
-        animate(0);
+        animate();
       }
       
       // Hide lightsaber after attack
