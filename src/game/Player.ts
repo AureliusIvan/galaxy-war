@@ -109,9 +109,9 @@ export class Player {
     handle.position.y = -0.2;
     this.lightsaber.add(handle);
     
-    // Lightsaber blade
+    // Lightsaber blade - use MeshPhongMaterial for emissive properties
     const bladeGeometry = new THREE.CylinderGeometry(0.013, 0.013, 1.5);
-    const bladeMaterial = new THREE.MeshBasicMaterial({ 
+    const bladeMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x00ffff, 
       transparent: true,
       opacity: 0.9,
@@ -123,9 +123,9 @@ export class Player {
     blade.name = 'blade';
     this.lightsaber.add(blade);
     
-    // Add glow effect
+    // Add glow effect - use MeshPhongMaterial for emissive properties
     const glowGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5);
-    const glowMaterial = new THREE.MeshBasicMaterial({
+    const glowMaterial = new THREE.MeshPhongMaterial({
       color: 0x00ffff,
       transparent: true,
       opacity: 0.6,
@@ -136,9 +136,9 @@ export class Player {
     glow.position.y = 0.6;
     this.lightsaber.add(glow);
     
-    // Add outer glow for more dramatic effect
+    // Add outer glow for more dramatic effect - use MeshPhongMaterial for emissive properties
     const outerGlowGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1.6);
-    const outerGlowMaterial = new THREE.MeshBasicMaterial({
+    const outerGlowMaterial = new THREE.MeshPhongMaterial({
       color: 0x88ffff,
       transparent: true,
       opacity: 0.4,
@@ -149,9 +149,9 @@ export class Player {
     outerGlow.position.y = 0.6;
     this.lightsaber.add(outerGlow);
     
-    // Add lightsaber core for more intensity
+    // Add lightsaber core for more intensity - use MeshPhongMaterial for emissive properties
     const coreGeometry = new THREE.CylinderGeometry(0.01, 0.01, 1.5);
-    const coreMaterial = new THREE.MeshBasicMaterial({
+    const coreMaterial = new THREE.MeshPhongMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 1.0,
@@ -162,9 +162,9 @@ export class Player {
     core.position.y = 0.6;
     this.lightsaber.add(core);
     
-    // Add additional bright glow effect
+    // Add additional bright glow effect - use MeshPhongMaterial for emissive properties
     const superGlowGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1.8);
-    const superGlowMaterial = new THREE.MeshBasicMaterial({
+    const superGlowMaterial = new THREE.MeshPhongMaterial({
       color: 0xaaffff,
       transparent: true,
       opacity: 0.3,
@@ -218,7 +218,7 @@ export class Player {
     barrel.position.set(0, 0.05, 0.4);
     this.blaster.add(barrel);
     
-    // Barrel tip with energy chamber
+    // Barrel tip with energy chamber - use MeshPhongMaterial for emissive properties
     const barrelTipGeometry = new THREE.CylinderGeometry(0.035, 0.025, 0.08);
     const barrelTipMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x0066cc,
@@ -284,9 +284,9 @@ export class Player {
     scope.position.set(0, 0.18, 0.1);
     this.blaster.add(scope);
     
-    // Energy core/power cell
+    // Energy core/power cell - use MeshPhongMaterial for emissive properties
     const energyCoreGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12);
-    const energyCoreMaterial = new THREE.MeshBasicMaterial({ 
+    const energyCoreMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x00ff00,
       emissive: 0x004400,
       emissiveIntensity: 0.5,
@@ -315,9 +315,9 @@ export class Player {
       this.blaster.add(vent2);
     }
     
-    // Ammo counter display (small rectangular screen)
+    // Ammo counter display (small rectangular screen) - use MeshPhongMaterial for emissive properties
     const ammoDisplayGeometry = new THREE.BoxGeometry(0.04, 0.02, 0.002);
-    const ammoDisplayMaterial = new THREE.MeshBasicMaterial({ 
+    const ammoDisplayMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x00ccff,
       emissive: 0x003366,
       emissiveIntensity: 0.7
@@ -401,7 +401,7 @@ export class Player {
       }
     });
 
-    // Mouse wheel for weapon switching
+    // Mouse wheel for weapon switching - use passive event listener
     this.canvas.addEventListener('wheel', (event) => {
       if (!this.isPointerLocked) return;
       event.preventDefault();
@@ -409,7 +409,7 @@ export class Player {
       if (event.deltaY !== 0) {
         this.switchWeapon();
       }
-    });
+    }, { passive: false }); // Explicitly set passive to false since we need preventDefault
 
     this.canvas.addEventListener('contextmenu', (event) => {
       event.preventDefault(); // Prevent right-click menu
@@ -512,9 +512,7 @@ export class Player {
     // Create laser projectile
     const laserGeometry = new THREE.CylinderGeometry(0.02, 0.02, 2.0); // Slightly thinner laser
     const laserMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      emissive: 0xff0000,
-      emissiveIntensity: 1.5 // Higher intensity for more vibrant look
+      color: 0xff0000
     });
     const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
     
@@ -590,11 +588,11 @@ export class Player {
     
     // Animate energy core flash
     const energyCore = this.blaster.getObjectByName('energyCore') as THREE.Mesh;
-    if (energyCore && energyCore.material instanceof THREE.MeshBasicMaterial) {
+    if (energyCore && energyCore.material instanceof THREE.MeshPhongMaterial) {
       const originalIntensity = energyCore.material.emissiveIntensity;
       energyCore.material.emissiveIntensity = 1.5;
       setTimeout(() => {
-        if (energyCore && energyCore.material instanceof THREE.MeshBasicMaterial) {
+        if (energyCore && energyCore.material instanceof THREE.MeshPhongMaterial) {
           energyCore.material.emissiveIntensity = originalIntensity;
         }
       }, recoilDuration);

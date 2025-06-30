@@ -436,9 +436,9 @@ export class Enemy {
       this.mesh.add(propellerGroup);
     }
 
-    // Drone eyes
+    // Drone eyes - use MeshPhongMaterial for emissive properties
     const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
-    const eyeMaterial = new THREE.MeshBasicMaterial({ 
+    const eyeMaterial = new THREE.MeshPhongMaterial({ 
       color: 0xff0000,
       emissive: 0xff0000,
       emissiveIntensity: 0.5
@@ -493,10 +493,10 @@ export class Enemy {
     head.castShadow = true;
     this.mesh.add(head);
 
-    // Robot eyes
+    // Robot eyes - use MeshPhongMaterial for emissive properties
     const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
     const eyeColor = this.type === 'exploder' ? 0xff4444 : 0xff0000;
-    const eyeMaterial = new THREE.MeshBasicMaterial({ 
+    const eyeMaterial = new THREE.MeshPhongMaterial({ 
       color: eyeColor,
       emissive: eyeColor,
       emissiveIntensity: 0.5
@@ -999,7 +999,7 @@ export class Enemy {
 
   private shootAtPlayer(playerPosition: THREE.Vector3) {
     const projectileGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const projectileMaterial = new THREE.MeshBasicMaterial({
+    const projectileMaterial = new THREE.MeshPhongMaterial({
       color: 0xff4444,
       emissive: 0xff0000,
       emissiveIntensity: 0.5
