@@ -41,7 +41,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStart, onShowLeaderboa
             <div className="text-left">
                 <h3 className="text-white font-semibold mb-4 text-lg">Credit</h3>
                 <div className="flex flex-col gap-y-2 text-sm text-gray-300">
-                    <span>Ivan</span>
+                    <span>Aurelius Ivan Wijaya </span>
                     <span>Agnes Devita Wijaya</span>
                 </div>
             </div>
