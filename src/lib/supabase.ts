@@ -3,11 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Check if Supabase is available
+export const isSupabaseAvailable = !!(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create client only if environment variables are available
+export const supabase = isSupabaseAvailable 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export interface LeaderboardEntry {
   id: string;
@@ -20,6 +22,11 @@ export interface LeaderboardEntry {
 
 export class LeaderboardService {
   static async getTopScores(limit: number = 10): Promise<LeaderboardEntry[]> {
+    if (!isSupabaseAvailable || !supabase) {
+      console.warn('Supabase not available - returning empty leaderboard');
+      return [];
+    }
+
     // Get the best score for each username
     const { data, error } = await supabase
       .rpc('get_best_scores_per_user', { score_limit: limit });
@@ -33,6 +40,11 @@ export class LeaderboardService {
   }
 
   static async submitScore(username: string, survivalTime: number, waveReached: number): Promise<boolean> {
+    if (!isSupabaseAvailable || !supabase) {
+      console.warn('Supabase not available - score not submitted');
+      return false;
+    }
+
     // Calculate score based on survival time and wave reached
     const score = Math.floor(survivalTime * 10 + waveReached * 500);
 
@@ -54,6 +66,11 @@ export class LeaderboardService {
   }
 
   static async getUserPersonalBest(username: string): Promise<LeaderboardEntry | null> {
+    if (!isSupabaseAvailable || !supabase) {
+      console.warn('Supabase not available - returning null for personal best');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('leaderboard')
       .select('*')
