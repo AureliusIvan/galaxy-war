@@ -444,7 +444,7 @@ export class Game {
           } catch (error) {
             console.warn('AI threat update error:', error);
           }
-          enemy.takeDamage(35, !isBehind); // More damage from behind
+          enemy.takeDamage(15, !isBehind); // More damage from behind
           this.particleSystem.createHitEffect(enemy.getPosition());
           
           if (!enemy.isAlive()) {

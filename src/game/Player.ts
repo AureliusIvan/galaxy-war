@@ -188,123 +188,133 @@ export class Player {
     this.blaster = new THREE.Group();
     
     // Main blaster body - more detailed design
-    const bodyGeometry = new THREE.BoxGeometry(0.12, 0.22, 0.5);
-    const bodyMaterial = new THREE.MeshPhongMaterial({ 
+    const bodyMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x2a2a2a,
-      shininess: 100
+      metalness: 0.7,
+      roughness: 0.4,
     });
+    const bodyGeometry = new THREE.BoxGeometry(0.12, 0.22, 0.5);
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.position.z = -0.1;
     this.blaster.add(body);
     
     // Upper body section
-    const upperBodyGeometry = new THREE.BoxGeometry(0.1, 0.08, 0.45);
-    const upperBodyMaterial = new THREE.MeshPhongMaterial({ 
+    const upperBodyMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x333333,
-      shininess: 120
+      metalness: 0.8,
+      roughness: 0.3,
     });
+    const upperBodyGeometry = new THREE.BoxGeometry(0.1, 0.08, 0.45);
     const upperBody = new THREE.Mesh(upperBodyGeometry, upperBodyMaterial);
     upperBody.position.set(0, 0.12, -0.05);
     this.blaster.add(upperBody);
     
     // Main barrel - longer and more detailed
-    const barrelGeometry = new THREE.CylinderGeometry(0.025, 0.03, 0.4);
-    const barrelMaterial = new THREE.MeshPhongMaterial({ 
+    const barrelMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x1a1a1a,
-      shininess: 150
+      metalness: 0.9,
+      roughness: 0.2,
     });
+    const barrelGeometry = new THREE.CylinderGeometry(0.025, 0.03, 0.45, 12); // Slightly longer and more polys
     const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.05, 0.4);
+    barrel.position.set(0, 0.05, 0.42); // Adjusted position
     this.blaster.add(barrel);
     
-    // Barrel tip with energy chamber - use MeshPhongMaterial for emissive properties
-    const barrelTipGeometry = new THREE.CylinderGeometry(0.035, 0.025, 0.08);
-    const barrelTipMaterial = new THREE.MeshPhongMaterial({ 
+    // Barrel tip with energy chamber
+    const barrelTipMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x0066cc,
-      shininess: 200,
-      emissive: 0x001133,
-      emissiveIntensity: 0.3
+      metalness: 0.5,
+      roughness: 0.1,
+      emissive: 0x00aaff,
+      emissiveIntensity: 2,
     });
+    const barrelTipGeometry = new THREE.CylinderGeometry(0.035, 0.025, 0.08);
     const barrelTip = new THREE.Mesh(barrelTipGeometry, barrelTipMaterial);
     barrelTip.rotation.x = Math.PI / 2;
     barrelTip.position.set(0, 0.05, 0.6);
     this.blaster.add(barrelTip);
     
     // Enhanced grip with texture details
-    const gripGeometry = new THREE.BoxGeometry(0.06, 0.18, 0.1);
-    const gripMaterial = new THREE.MeshPhongMaterial({ 
+    const gripMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x2d2d2d,
-      shininess: 80
+      metalness: 0.6,
+      roughness: 0.6,
     });
+    const gripGeometry = new THREE.BoxGeometry(0.06, 0.18, 0.1);
     const grip = new THREE.Mesh(gripGeometry, gripMaterial);
     grip.position.set(0, -0.18, -0.15);
     this.blaster.add(grip);
     
     // Trigger guard
-    const triggerGuardGeometry = new THREE.TorusGeometry(0.05, 0.008, 8, 16, Math.PI);
-    const triggerGuardMaterial = new THREE.MeshPhongMaterial({ 
+    const triggerGuardMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x444444,
-      shininess: 100
+      metalness: 0.8,
+      roughness: 0.2,
     });
+    const triggerGuardGeometry = new THREE.TorusGeometry(0.05, 0.008, 8, 16, Math.PI);
     const triggerGuard = new THREE.Mesh(triggerGuardGeometry, triggerGuardMaterial);
     triggerGuard.position.set(0, -0.1, -0.05);
     triggerGuard.rotation.x = Math.PI / 2;
     this.blaster.add(triggerGuard);
     
     // Trigger
-    const triggerGeometry = new THREE.BoxGeometry(0.02, 0.04, 0.01);
-    const triggerMaterial = new THREE.MeshPhongMaterial({ 
+    const triggerMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x666666,
-      shininess: 120
+      metalness: 0.9,
+      roughness: 0.1,
     });
+    const triggerGeometry = new THREE.BoxGeometry(0.02, 0.04, 0.01);
     const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
     trigger.position.set(0, -0.08, -0.05);
     trigger.name = 'trigger'; // Name it for recoil animation
     this.blaster.add(trigger);
     
     // Scope rail
-    const scopeRailGeometry = new THREE.BoxGeometry(0.08, 0.02, 0.3);
-    const scopeRailMaterial = new THREE.MeshPhongMaterial({ 
+    const scopeRailMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x1a1a1a,
-      shininess: 100
+      metalness: 0.8,
+      roughness: 0.2,
     });
+    const scopeRailGeometry = new THREE.BoxGeometry(0.08, 0.02, 0.3);
     const scopeRail = new THREE.Mesh(scopeRailGeometry, scopeRailMaterial);
     scopeRail.position.set(0, 0.16, 0);
     this.blaster.add(scopeRail);
     
     // Mini scope
-    const scopeGeometry = new THREE.CylinderGeometry(0.02, 0.025, 0.08);
-    const scopeMaterial = new THREE.MeshPhongMaterial({ 
+    const scopeMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x333333,
-      shininess: 150
+      metalness: 0.9,
+      roughness: 0.1,
     });
+    const scopeGeometry = new THREE.CylinderGeometry(0.02, 0.025, 0.08);
     const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
     scope.rotation.x = Math.PI / 2;
     scope.position.set(0, 0.18, 0.1);
     this.blaster.add(scope);
     
-    // Energy core/power cell - use MeshPhongMaterial for emissive properties
-    const energyCoreGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12);
-    const energyCoreMaterial = new THREE.MeshPhongMaterial({ 
+    // Energy core/power cell
+    const energyCoreMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x00ff00,
-      emissive: 0x004400,
-      emissiveIntensity: 0.5,
+      emissive: 0x00ff00,
+      emissiveIntensity: 3,
       transparent: true,
       opacity: 0.8
     });
+    const energyCoreGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12);
     const energyCore = new THREE.Mesh(energyCoreGeometry, energyCoreMaterial);
     energyCore.position.set(0.04, 0, -0.2);
     energyCore.name = 'energyCore'; // For recoil animation
     this.blaster.add(energyCore);
     
     // Side vents
+    const ventMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x111111,
+      metalness: 0.9,
+      roughness: 0.2,
+    });
     for (let i = 0; i < 3; i++) {
       const ventGeometry = new THREE.BoxGeometry(0.015, 0.03, 0.002);
-      const ventMaterial = new THREE.MeshPhongMaterial({ 
-        color: 0x111111,
-        shininess: 50
-      });
       const vent = new THREE.Mesh(ventGeometry, ventMaterial);
       vent.position.set(0.065, 0.02 - (i * 0.02), 0.1 + (i * 0.08));
       this.blaster.add(vent);
@@ -315,13 +325,13 @@ export class Player {
       this.blaster.add(vent2);
     }
     
-    // Ammo counter display (small rectangular screen) - use MeshPhongMaterial for emissive properties
-    const ammoDisplayGeometry = new THREE.BoxGeometry(0.04, 0.02, 0.002);
-    const ammoDisplayMaterial = new THREE.MeshPhongMaterial({ 
+    // Ammo counter display (small rectangular screen)
+    const ammoDisplayMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x00ccff,
-      emissive: 0x003366,
-      emissiveIntensity: 0.7
+      emissive: 0x00aaff,
+      emissiveIntensity: 4,
     });
+    const ammoDisplayGeometry = new THREE.BoxGeometry(0.04, 0.02, 0.002);
     const ammoDisplay = new THREE.Mesh(ammoDisplayGeometry, ammoDisplayMaterial);
     ammoDisplay.position.set(-0.04, 0.08, -0.15);
     ammoDisplay.name = 'ammoDisplay';

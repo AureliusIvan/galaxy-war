@@ -55,6 +55,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStart, onShowLeaderboa
           </div>
         </div>
         
+        <div className="mb-12">
+          <h3 className="text-white font-semibold mb-2">Credit</h3>
+          <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 text-sm text-gray-300">
+            <span>Ivan</span>
+            <span>Agnes Devita Wijaya</span>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <button
             onClick={onStart}

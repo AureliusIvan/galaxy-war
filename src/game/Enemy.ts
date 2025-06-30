@@ -176,7 +176,7 @@ export class Enemy {
     if (this.type === 'drone') {
       this.createDroneMesh(size);
     } else {
-      this.createRobotMesh(size);
+      this.createIMPROVEDRobotMesh(size);
     }
 
     // Create shield for shielded enemies
@@ -350,6 +350,7 @@ export class Enemy {
     
     return this.position.clone().add(this.evasionDirection.clone().multiplyScalar(5));
   }
+
   private createDroneMesh(size: number) {
     // Drone body - spherical
     const bodyGeometry = new THREE.SphereGeometry(size * 0.3, 12, 8);
@@ -406,101 +407,68 @@ export class Enemy {
     this.mesh.add(rightEye);
   }
 
-  private createRobotMesh(size: number) {
-    // Robot body
-    const bodyGeometry = new THREE.BoxGeometry(size * 0.8, size * 1.2, size * 0.6);
-    const bodyMaterial = new THREE.MeshPhongMaterial({ 
+  private createIMPROVEDRobotMesh(size: number) {
+    const bodyMaterial = new THREE.MeshStandardMaterial({
       color: this.config.color,
-      shininess: 100 
+      metalness: 0.8,
+      roughness: 0.2,
     });
+
+    // Body
+    const bodyGeometry = new THREE.CylinderGeometry(size * 0.5, size * 0.4, size * 1.2, 8);
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = size * 0.6;
     body.castShadow = true;
+    body.receiveShadow = true;
     this.mesh.add(body);
 
-    // Special markings for different types
-    if (this.type === 'exploder') {
-      // Add warning stripes
-      const stripeGeometry = new THREE.BoxGeometry(size * 0.82, size * 0.1, size * 0.62);
-      const stripeMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
-      for (let i = 0; i < 3; i++) {
-        const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
-        stripe.position.y = size * (0.3 + i * 0.3);
-        this.mesh.add(stripe);
-      }
-    }
-
-    // Robot head
-    const headGeometry = new THREE.BoxGeometry(size * 0.5, size * 0.5, size * 0.5);
-    const headMaterial = new THREE.MeshPhongMaterial({
-      color: this.config.color,
-      shininess: 100
+    // Head
+    const headGeometry = new THREE.SphereGeometry(size * 0.3, 12, 8);
+    const headMaterial = new THREE.MeshStandardMaterial({
+      color: 0xaaaaaa,
+      metalness: 0.9,
+      roughness: 0.1,
     });
-    
-    if (this.denisFaceTexture && (this.type === 'normal' || Math.random() < 0.3)) {
-      headMaterial.map = this.denisFaceTexture;
-    }
-    
     const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.y = size * 1.45;
+    head.position.y = size * 0.8;
     head.castShadow = true;
     this.mesh.add(head);
 
-    // Robot eyes - use MeshPhongMaterial for emissive properties
-    const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const eyeColor = this.type === 'exploder' ? 0xff4444 : 0xff0000;
-    const eyeMaterial = new THREE.MeshPhongMaterial({ 
-      color: eyeColor,
-      emissive: eyeColor,
-      emissiveIntensity: 0.5
+    // Eye
+    const eyeGeometry = new THREE.SphereGeometry(size * 0.1, 8, 8);
+    const eyeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      emissive: 0xff0000,
+      emissiveIntensity: 2,
     });
-    
-    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-size * 0.15, size * 1.5, size * 0.26);
-    this.mesh.add(leftEye);
-    
-    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(size * 0.15, size * 1.5, size * 0.26);
-    this.mesh.add(rightEye);
+    const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    eye.position.set(0, size * 0.85, size * 0.25);
+    this.mesh.add(eye);
 
-    // Robot arms - different based on type
-    const armGeometry = new THREE.BoxGeometry(size * 0.2, size * 0.8, size * 0.2);
-    let armMaterial = new THREE.MeshPhongMaterial({ color: this.config.color });
-    
-    if (this.type === 'ranged') {
-      // Make right arm look like a blaster
-      const blasterGeometry = new THREE.BoxGeometry(size * 0.15, size * 0.25, size * 0.6);
-      armMaterial = new THREE.MeshPhongMaterial({ color: 0x222222 });
-    }
-    
+    // Arms
+    const armGeometry = new THREE.BoxGeometry(size * 0.15, size * 0.8, size * 0.2);
+    const armMaterial = new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      metalness: 0.7,
+      roughness: 0.4,
+    });
+
     const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-    leftArm.position.set(-size * 0.6, size * 0.6, 0);
+    leftArm.position.set(-size * 0.5, 0, 0);
+    leftArm.rotation.z = Math.PI / 8;
     leftArm.castShadow = true;
     this.mesh.add(leftArm);
-    
-    const rightArm = new THREE.Mesh(armGeometry, armMaterial.clone());
-    rightArm.position.set(size * 0.6, size * 0.6, 0);
+
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(size * 0.5, 0, 0);
+    rightArm.rotation.z = -Math.PI / 8;
     rightArm.castShadow = true;
     this.mesh.add(rightArm);
 
-    // Robot legs - thicker for heavy types
-    const legWidth = this.type === 'heavy' ? size * 0.35 : size * 0.25;
-    const legGeometry = new THREE.BoxGeometry(legWidth, size * 0.6, legWidth);
-    const legMaterial = new THREE.MeshPhongMaterial({ color: this.config.color });
-    
-    const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-    leftLeg.position.set(-size * 0.2, -size * 0.3, 0);
-    leftLeg.castShadow = true;
-    this.mesh.add(leftLeg);
-    
-    const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-    rightLeg.position.set(size * 0.2, -size * 0.3, 0);
-    rightLeg.castShadow = true;
-    this.mesh.add(rightLeg);
+    this.mesh.rotation.y = Math.PI; // Rotate to face forward
   }
 
   private createShield(size: number) {
-    const shieldGeometry = new THREE.CylinderGeometry(size * 0.8, size * 0.8, size * 1.6, 16, 1, true, 0, Math.PI);
+    const shieldGeometry = new THREE.SphereGeometry(size * 0.9, 32, 32);
     const shieldMaterial = new THREE.MeshBasicMaterial({
       color: 0x0088ff,
       transparent: true,
