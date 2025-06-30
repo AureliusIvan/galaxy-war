@@ -226,6 +226,58 @@ export class ParticleSystem {
     });
   }
 
+  public createTelekinesisThrowEffect(position: THREE.Vector3, direction: THREE.Vector3) {
+    if (this.particles.length >= this.maxParticles) return;
+
+    const particleCount = 100;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+
+    const perpendicular = new THREE.Vector3().crossVectors(direction, new THREE.Vector3(0, 1, 0)).normalize();
+    const anotherPerp = new THREE.Vector3().crossVectors(direction, perpendicular).normalize();
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const radius = Math.random() * 1.5 + 0.5;
+
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      
+      const pos = perpendicular.clone().multiplyScalar(x).add(anotherPerp.clone().multiplyScalar(y));
+      positions[i * 3] = pos.x;
+      positions[i * 3 + 1] = pos.y;
+      positions[i * 3 + 2] = pos.z;
+
+      // Purple/violet colors
+      colors[i * 3] = 0.6 + Math.random() * 0.4;
+      colors[i * 3 + 1] = 0.2 + Math.random() * 0.3;
+      colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 0.1,
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      blending: THREE.AdditiveBlending
+    });
+
+    const points = new THREE.Points(geometry, material);
+    points.position.copy(position);
+    this.scene.add(points);
+
+    this.particles.push({
+      mesh: points,
+      velocity: direction.clone().multiplyScalar(0.1),
+      life: 50,
+      maxLife: 50
+    });
+  }
+
   public createLandingEffect(position: THREE.Vector3) {
     const particleCount = 25;
     const geometry = new THREE.BufferGeometry();

@@ -515,7 +515,7 @@ export class Game {
         }
         
         // Check ranged enemy projectile hits
-        if (enemy.checkProjectileHit(playerPosition, 0.8)) {
+        if (enemy.checkProjectileOrLaserHit(playerPosition, 0.8)) {
           this.player.takeDamage(enemy.getDamage()); // Normal projectile damage
           this.callbacks.onHealthChange(this.player.getHealth());
           this.particleSystem.createHitEffect(playerPosition);

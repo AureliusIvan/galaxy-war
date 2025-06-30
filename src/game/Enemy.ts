@@ -4,7 +4,7 @@ import { AIState, AICoordinator, PathFinder } from './AIBehavior';
 // Texture loader for Denis face
 const textureLoader = new THREE.TextureLoader();
 
-export type EnemyType = 'normal' | 'scout' | 'heavy' | 'ranged' | 'exploder' | 'shielded' | 'drone';
+export type EnemyType = 'normal' | 'scout' | 'heavy' | 'ranged' | 'exploder' | 'shielded' | 'drone' | 'laser_trooper';
 
 interface EnemyConfig {
   maxHealth: number;
@@ -18,6 +18,7 @@ interface EnemyConfig {
   canFly?: boolean;
   shootRange?: number;
   shootCooldown?: number;
+  shootsLaser?: boolean;
 }
 
 const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
@@ -81,10 +82,28 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     damage: 0.5,
     attackRange: 1,
     canFly: true
+  },
+  laser_trooper: {
+    maxHealth: 200,
+    speed: 0.03,
+    size: 1.0,
+    color: 0xaa00aa,
+    damage: 2.0,
+    attackRange: 1.5,
+    shootRange: 20,
+    shootCooldown: 100,
+    shootsLaser: true
   }
 };
 
 interface EnemyProjectile {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+  damage: number;
+  life: number;
+}
+
+interface Laser {
   mesh: THREE.Mesh;
   velocity: THREE.Vector3;
   damage: number;
@@ -113,6 +132,7 @@ export class Enemy {
   private stuckThreshold = 180;
   private stuckCheckTimer = 0;
   private projectiles: EnemyProjectile[] = [];
+  private lasers: Laser[] = [];
   private shield: THREE.Mesh | null = null;
   private shieldActive = true;
   private flyHeight = 0;
@@ -547,6 +567,7 @@ export class Enemy {
     
     // Update projectiles
     this.updateProjectiles();
+    this.updateLasers(playerPosition);
 
     if (this.isLevitating) {
       this.mesh.rotation.y += 0.05;
@@ -927,30 +948,54 @@ export class Enemy {
   }
 
   private shootAtPlayer(playerPosition: THREE.Vector3) {
-    const projectileGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const projectileMaterial = new THREE.MeshPhongMaterial({
-      color: 0xff4444,
-      emissive: 0xff0000,
-      emissiveIntensity: 0.5
-    });
-    const projectileMesh = new THREE.Mesh(projectileGeometry, projectileMaterial);
+    if (this.shootCooldown > 0) return;
+
+    if (this.config.shootsLaser) {
+      const laserMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+      const laserGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1);
+      const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
+      
+      const direction = playerPosition.clone().sub(this.position).normalize();
+      
+      laserMesh.position.copy(this.position).add(direction.clone().multiplyScalar(1.0));
+      laserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+      
+      this.scene.add(laserMesh);
+      
+      this.lasers.push({
+        mesh: laserMesh,
+        velocity: direction.clone().multiplyScalar(0.8),
+        damage: this.config.damage,
+        life: 120,
+      });
+    } else {
+      const projectileGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+      const projectileMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff4444,
+        emissive: 0xff0000,
+        emissiveIntensity: 0.5
+      });
+      const projectileMesh = new THREE.Mesh(projectileGeometry, projectileMaterial);
+      
+      projectileMesh.position.copy(this.position);
+      projectileMesh.position.y += this.config.size * 0.5;
+      
+      const direction = playerPosition.clone().sub(this.position).normalize();
+      direction.y += 0.1; // Slight upward aim
+      
+      this.scene.add(projectileMesh);
+      
+      const projectile: EnemyProjectile = {
+        mesh: projectileMesh,
+        velocity: direction.multiplyScalar(0.3),
+        damage: this.config.damage,
+        life: 180 // 3 seconds
+      };
+      
+      this.projectiles.push(projectile);
+    }
     
-    projectileMesh.position.copy(this.position);
-    projectileMesh.position.y += this.config.size * 0.5;
-    
-    const direction = playerPosition.clone().sub(this.position).normalize();
-    direction.y += 0.1; // Slight upward aim
-    
-    this.scene.add(projectileMesh);
-    
-    const projectile: EnemyProjectile = {
-      mesh: projectileMesh,
-      velocity: direction.multiplyScalar(0.3),
-      damage: this.config.damage,
-      life: 180 // 3 seconds
-    };
-    
-    this.projectiles.push(projectile);
+    this.shootCooldown = this.config.shootCooldown!;
   }
 
   private updateProjectiles() {
@@ -965,6 +1010,30 @@ export class Enemy {
         projectile.mesh.geometry.dispose();
         (projectile.mesh.material as THREE.Material).dispose();
         this.projectiles.splice(i, 1);
+      }
+    }
+  }
+
+  private updateLasers(playerPosition: THREE.Vector3) {
+    for (let i = this.lasers.length - 1; i >= 0; i--) {
+      const laser = this.lasers[i];
+      laser.mesh.position.add(laser.velocity);
+      laser.life--;
+
+      if (laser.life <= 0) {
+        this.scene.remove(laser.mesh);
+        (laser.mesh.geometry as THREE.BufferGeometry).dispose();
+        (laser.mesh.material as THREE.Material).dispose();
+        this.lasers.splice(i, 1);
+        continue;
+      }
+
+      if (laser.mesh.position.distanceTo(playerPosition) < 1) {
+        // We will handle damage in checkProjectileOrLaserHit
+        this.scene.remove(laser.mesh);
+        (laser.mesh.geometry as THREE.BufferGeometry).dispose();
+        (laser.mesh.material as THREE.Material).dispose();
+        this.lasers.splice(i, 1);
       }
     }
   }
@@ -1121,18 +1190,27 @@ export class Enemy {
     this.aiState.coverPosition = null;
   }
 
-  public checkProjectileHit(playerPosition: THREE.Vector3, playerRadius: number = 0.5): boolean {
+  public checkProjectileOrLaserHit(playerPosition: THREE.Vector3, playerRadius: number = 0.5): boolean {
+    // Check projectile hits
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const projectile = this.projectiles[i];
-      const distance = projectile.mesh.position.distanceTo(playerPosition);
-      
-      if (distance < playerRadius) {
-        // Remove projectile
-        this.scene.remove(projectile.mesh);
-        projectile.mesh.geometry.dispose();
-        (projectile.mesh.material as THREE.Material).dispose();
+      if (projectile.mesh.position.distanceTo(playerPosition) < playerRadius) {
         this.projectiles.splice(i, 1);
-        
+        this.scene.remove(projectile.mesh);
+        (projectile.mesh.geometry as THREE.BufferGeometry).dispose();
+        (projectile.mesh.material as THREE.Material).dispose();
+        return true;
+      }
+    }
+
+    // Check laser hits
+    for (let i = this.lasers.length - 1; i >= 0; i--) {
+      const laser = this.lasers[i];
+      if (laser.mesh.position.distanceTo(playerPosition) < playerRadius) {
+        this.lasers.splice(i, 1);
+        this.scene.remove(laser.mesh);
+        (laser.mesh.geometry as THREE.BufferGeometry).dispose();
+        (laser.mesh.material as THREE.Material).dispose();
         return true;
       }
     }
