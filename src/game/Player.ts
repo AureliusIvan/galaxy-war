@@ -1170,29 +1170,15 @@ export class Player {
           this.position.z = newPosition.z;
         }
         
-        // If both individual axes are blocked, try smaller movements
+        // Simplified collision handling for better performance
         if (level.checkCollision(testX, collisionRadius, playerHeight) && level.checkCollision(testZ, collisionRadius, playerHeight)) {
-          // Try moving with reduced velocity
+          // Only try one reduced movement instead of multiple micro-movements
           const reducedVelocity = this.velocity.clone().multiplyScalar(0.3);
           const reducedPosition = this.position.clone().add(reducedVelocity);
           if (!level.checkCollision(reducedPosition, collisionRadius, playerHeight)) {
             this.position.copy(reducedPosition);
-          } else {
-            // Try even smaller movements in multiple directions
-            const microMoves = [
-              this.velocity.clone().multiplyScalar(0.1),
-              new THREE.Vector3(this.velocity.x * 0.1, 0, 0),
-              new THREE.Vector3(0, 0, this.velocity.z * 0.1)
-            ];
-            
-            for (const microMove of microMoves) {
-              const microPosition = this.position.clone().add(microMove);
-              if (!level.checkCollision(microPosition, collisionRadius, playerHeight)) {
-                this.position.copy(microPosition);
-                break;
-              }
-            }
           }
+          // If still blocked, just don't move this frame
         }
       }
     } else {

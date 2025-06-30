@@ -58,48 +58,64 @@ export class AudioManager {
   }
 
   private async generateSyntheticSounds() {
-    // Generate background music - ambient sci-fi drone
-    await this.generateBackgroundMusic();
+    // Skip audio generation to improve performance
+    // Just create silent audio elements
+    if (this.backgroundMusic) {
+      this.backgroundMusic.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IAAAAAEAAQESAAABEgAAAQAIAGRhdGEEAAAAAA==';
+    }
     
-    // Generate all other sounds in parallel
-    await Promise.all([
-      this.generateHitSound(this.hitSound!),
-      this.generateThrowSound(this.throwSound!),
-      this.generateWeaponSound(this.weaponSound!),
-      this.generateReloadSound(this.reloadSound!),
-      this.generateJumpSound(this.jumpSound!),
-      this.generateLandingSound(this.landingSound!)
-    ]);
+    // Create minimal silent audio for all sound effects
+    const silentAudio = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IAAAAAEAAQESAAABEgAAAQAIAGRhdGEEAAAAAA==';
+    
+    if (this.hitSound) this.hitSound.src = silentAudio;
+    if (this.throwSound) this.throwSound.src = silentAudio;
+    if (this.weaponSound) this.weaponSound.src = silentAudio;
+    if (this.reloadSound) this.reloadSound.src = silentAudio;
+    if (this.jumpSound) this.jumpSound.src = silentAudio;
+    if (this.landingSound) this.landingSound.src = silentAudio;
+    
+    // Wait a brief moment for audio elements to be ready
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
 
   private async generateBackgroundMusic() {
     if (!this.backgroundMusic) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const duration = 8; // 8 seconds loop to reduce initialization time
+    const duration = 2; // Reduced to 2 seconds to minimize generation time
     const sampleRate = audioContext.sampleRate;
     const buffer = audioContext.createBuffer(2, duration * sampleRate, sampleRate);
 
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = buffer.getChannelData(channel);
+    // Process audio generation in chunks to prevent blocking
+    const chunkSize = sampleRate * 0.1; // Process 0.1 seconds at a time
+    const totalSamples = duration * sampleRate;
+    
+    for (let chunk = 0; chunk < Math.ceil(totalSamples / chunkSize); chunk++) {
+      const startSample = chunk * chunkSize;
+      const endSample = Math.min(startSample + chunkSize, totalSamples);
       
-      for (let i = 0; i < channelData.length; i++) {
-        const time = i / sampleRate;
+      for (let channel = 0; channel < 2; channel++) {
+        const channelData = buffer.getChannelData(channel);
         
-        // Create ambient drone with multiple oscillators
-        const bass = Math.sin(2 * Math.PI * 55 * time) * 0.1; // Deep bass
-        const mid = Math.sin(2 * Math.PI * 110 * time + Math.sin(time * 0.5)) * 0.05; // Modulated mid
-        const high = Math.sin(2 * Math.PI * 220 * time + Math.sin(time * 0.3)) * 0.02; // Subtle high
-        
-        // Add some random noise for texture
-        const noise = (Math.random() - 0.5) * 0.01;
-        
-        // Combine and apply fade in/out
-        const fadeIn = Math.min(1, time * 2);
-        const fadeOut = Math.min(1, (duration - time) * 2);
-        const fade = Math.min(fadeIn, fadeOut);
-        
-        channelData[i] = (bass + mid + high + noise) * fade;
+        for (let i = startSample; i < endSample; i++) {
+          const time = i / sampleRate;
+          
+          // Simplified ambient drone
+          const bass = Math.sin(2 * Math.PI * 55 * time) * 0.1;
+          const mid = Math.sin(2 * Math.PI * 110 * time) * 0.05;
+          
+          // Combine and apply fade
+          const fadeIn = Math.min(1, time * 2);
+          const fadeOut = Math.min(1, (duration - time) * 2);
+          const fade = Math.min(fadeIn, fadeOut);
+          
+          channelData[i] = (bass + mid) * fade;
+        }
+      }
+      
+      // Yield control back to main thread after each chunk
+      if (chunk % 2 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
 

@@ -129,6 +129,7 @@ export class Enemy {
   private evasionDirection = new THREE.Vector3();
   private predictedPlayerPosition = new THREE.Vector3();
   private lastPlayerPositions: THREE.Vector3[] = [];
+  private updateCounter: number;
 
   constructor(position: THREE.Vector3, scene: THREE.Scene, difficulty: number = 1, type: EnemyType = 'normal') {
     this.position = position.clone();
@@ -137,6 +138,7 @@ export class Enemy {
     this.config = ENEMY_CONFIGS[type];
     this.targetPosition = position.clone();
     this.id = `enemy_${Math.random().toString(36).substr(2, 9)}`;
+    this.updateCounter = Math.floor(Math.random() * 20); // Random initial offset
     
     // Initialize AI state
     this.aiState = {
@@ -612,8 +614,10 @@ export class Enemy {
   public update(playerPosition: THREE.Vector3, level?: any) {
     if (!this.isAlive()) return;
 
-    // Update AI systems (throttled to prevent performance issues)
-    if (Math.random() < 0.3) { // Only 30% of frames
+    this.updateCounter++;
+
+    // Update AI systems (heavily throttled to prevent performance issues)
+    if (this.updateCounter % 10 === 0) { // Only 10% of frames (reduced from 30%)
       try {
         this.updatePlayerTracking(playerPosition);
         this.updateAwareness(playerPosition, level);
@@ -636,11 +640,13 @@ export class Enemy {
       return;
     }
 
-    // Type-specific updates
-    this.updateByType(playerPosition, level);
+    // Type-specific updates (throttled)
+    if (this.updateCounter % 2 === 0) { // Only 50% of frames
+      this.updateByType(playerPosition, level);
+    }
 
-    // Update formation if part of one
-    if (this.formationRole && this.formationId && Math.random() < 0.2) { // Throttle formation updates
+    // Update formation if part of one (more throttling)
+    if (this.formationRole && this.formationId && this.updateCounter % 10 === 0) { // Reduced to 10%
       try {
         const coordinator = AICoordinator.getInstance();
         const formationTarget = coordinator.getFormationPosition(
@@ -654,35 +660,39 @@ export class Enemy {
       }
     }
 
-    // Update mesh position and health bar
+    // Update mesh position (always)
     this.mesh.position.copy(this.position);
-    this.updateHealthBar();
+    
+    // Update health bar and visual effects (throttled)
+    if (this.updateCounter % 3 === 0) { // Only 30% of frames
+      this.updateHealthBar();
 
-    // Make health bar face camera
-    const healthBarGroup = this.mesh.children.find(child => child instanceof THREE.Group && child.children.length > 0);
-    if (healthBarGroup) {
-      healthBarGroup.lookAt(playerPosition);
-    }
+      // Make health bar face camera
+      const healthBarGroup = this.mesh.children.find(child => child instanceof THREE.Group && child.children.length > 0);
+      if (healthBarGroup) {
+        healthBarGroup.lookAt(playerPosition);
+      }
 
-    // Animate propellers for drones
-    if (this.type === 'drone') {
-      this.mesh.traverse((child) => {
-        if (child.name === 'propeller') {
-          child.rotation.y += 0.5;
-        }
-      });
-    }
-
-    // Pulse exploder warning
-    if (this.type === 'exploder' && !this.explosionTriggered) {
-      const distance = this.position.distanceTo(playerPosition);
-      if (distance < this.config.explosionRadius!) {
-        const intensity = Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+      // Animate propellers for drones
+      if (this.type === 'drone') {
         this.mesh.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
-            child.material.emissive.setRGB(intensity * 0.5, 0, 0);
+          if (child.name === 'propeller') {
+            child.rotation.y += 0.5;
           }
         });
+      }
+
+      // Pulse exploder warning
+      if (this.type === 'exploder' && !this.explosionTriggered) {
+        const distance = this.position.distanceTo(playerPosition);
+        if (distance < this.config.explosionRadius!) {
+          const intensity = Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+          this.mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
+              child.material.emissive.setRGB(intensity * 0.5, 0, 0);
+            }
+          });
+        }
       }
     }
   }

@@ -1,5 +1,61 @@
 import * as THREE from 'three';
 
+// Simple priority queue for A*
+class PriorityQueue<T> {
+  private heap: { element: T; priority: number }[] = [];
+
+  enqueue(element: T, priority: number) {
+    this.heap.push({ element, priority });
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  dequeue(): T | undefined {
+    if (this.isEmpty()) {
+      return undefined;
+    }
+    this.swap(0, this.heap.length - 1);
+    const item = this.heap.pop();
+    this.bubbleDown(0);
+    return item?.element;
+  }
+
+  isEmpty(): boolean {
+    return this.heap.length === 0;
+  }
+
+  private bubbleUp(index: number) {
+    let element = this.heap[index];
+    while (index > 0) {
+      let parentIndex = Math.floor((index - 1) / 2);
+      let parent = this.heap[parentIndex];
+      if (element.priority >= parent.priority) break;
+      this.swap(index, parentIndex);
+      index = parentIndex;
+    }
+  }
+
+  private bubbleDown(index: number) {
+    const left = 2 * index + 1;
+    const right = 2 * index + 2;
+    let smallest = index;
+
+    if (left < this.heap.length && this.heap[left].priority < this.heap[smallest].priority) {
+      smallest = left;
+    }
+    if (right < this.heap.length && this.heap[right].priority < this.heap[smallest].priority) {
+      smallest = right;
+    }
+    if (smallest !== index) {
+      this.swap(index, smallest);
+      this.bubbleDown(smallest);
+    }
+  }
+
+  private swap(a: number, b: number) {
+    [this.heap[a], this.heap[b]] = [this.heap[b], this.heap[a]];
+  }
+}
+
 export interface AIState {
   alertLevel: number; // 0-100, how aware the enemy is of player
   lastKnownPlayerPosition: THREE.Vector3 | null;
@@ -115,24 +171,25 @@ export class AICoordinator {
   private clusterEnemies(enemies: any[], maxDistance: number): any[][] {
     const clusters: any[][] = [];
     const visited = new Set<string>();
-    
-    enemies.forEach(enemy => {
-      if (visited.has(enemy.getId())) return;
-      
-      const cluster = [enemy];
+
+    for (const enemy of enemies) {
+      if (visited.has(enemy.getId())) continue;
+
+      const newCluster = [enemy];
       visited.add(enemy.getId());
-      
-      enemies.forEach(other => {
-        if (!visited.has(other.getId()) && 
-            enemy.getPosition().distanceTo(other.getPosition()) <= maxDistance) {
-          cluster.push(other);
+
+      // Find other enemies for this new cluster
+      for (const other of enemies) {
+        if (visited.has(other.getId())) continue;
+
+        if (other.getPosition().distanceTo(enemy.getPosition()) <= maxDistance) {
+          newCluster.push(other);
           visited.add(other.getId());
         }
-      });
-      
-      clusters.push(cluster);
-    });
-    
+      }
+      clusters.push(newCluster);
+    }
+
     return clusters;
   }
 
@@ -222,7 +279,7 @@ export class PathFinder {
   private static arenaSize = 50;
   private static grid: boolean[][] | null = null;
   
-  static initializeGrid(level: any) {
+  static async initializeGrid(level: any) {
     if (!level) {
       console.warn('Cannot initialize pathfinding: level is null');
       return;
@@ -231,18 +288,25 @@ export class PathFinder {
     const size = Math.floor(this.arenaSize / this.gridSize);
     this.grid = Array(size).fill(null).map(() => Array(size).fill(false));
     
-    // Mark obstacle cells (simplified to reduce load time)
-    const step = 2; // Check every 2nd cell to speed up initialization
-    for (let x = 0; x < size; x++) {
-      for (let z = 0; z < size; z++) {
-        if (x % step !== 0 || z % step !== 0) continue; // Skip some cells
-        
+    // Mark obstacle cells asynchronously to prevent blocking
+    const step = 3; // Check every 3rd cell to further reduce load
+    const batchSize = 50; // Process cells in batches
+    let processedCells = 0;
+    
+    for (let x = 0; x < size; x += step) {
+      for (let z = 0; z < size; z += step) {
         const worldX = (x - size / 2) * this.gridSize;
         const worldZ = (z - size / 2) * this.gridSize;
         const worldPos = new THREE.Vector3(worldX, 1, worldZ);
         
         if (level.checkCollision && level.checkCollision(worldPos, 0.5, 1)) {
           this.grid[x][z] = true; // Mark as obstacle
+        }
+        
+        processedCells++;
+        // Yield control back to the main thread every batchSize cells
+        if (processedCells % batchSize === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
     }
@@ -290,7 +354,9 @@ export class PathFinder {
   
   private static aStar(start: { x: number, z: number }, end: { x: number, z: number }): { x: number, z: number }[] {
     // Simplified A* implementation
-    const openSet = [start];
+    const openSet = new PriorityQueue<{ x: number, z: number }>();
+    openSet.enqueue(start, 0);
+
     const cameFrom = new Map<string, { x: number, z: number }>();
     const gScore = new Map<string, number>();
     const fScore = new Map<string, number>();
@@ -302,10 +368,12 @@ export class PathFinder {
     gScore.set(getKey(start), 0);
     fScore.set(getKey(start), heuristic(start, end));
     
-    while (openSet.length > 0) {
-      // Find node with lowest fScore
-      openSet.sort((a, b) => (fScore.get(getKey(a)) || Infinity) - (fScore.get(getKey(b)) || Infinity));
-      const current = openSet.shift()!;
+    const openSetKeys = new Set<string>();
+    openSetKeys.add(getKey(start));
+
+    while (!openSet.isEmpty()) {
+      const current = openSet.dequeue()!;
+      openSetKeys.delete(getKey(current));
       
       if (current.x === end.x && current.z === end.z) {
         // Reconstruct path
@@ -335,16 +403,15 @@ export class PathFinder {
         if (tentativeGScore < (gScore.get(neighborKey) || Infinity)) {
           cameFrom.set(neighborKey, current);
           gScore.set(neighborKey, tentativeGScore);
-          fScore.set(neighborKey, tentativeGScore + heuristic(neighbor, end));
+          const newFScore = tentativeGScore + heuristic(neighbor, end);
+          fScore.set(neighborKey, newFScore);
           
-          if (!openSet.find(n => n.x === neighbor.x && n.z === neighbor.z)) {
-            openSet.push(neighbor);
+          if (!openSetKeys.has(neighborKey)) {
+            openSet.enqueue(neighbor, newFScore);
+            openSetKeys.add(neighborKey);
           }
         }
       }
-      
-      // Limit search to prevent infinite loops
-      if (openSet.length > 200) break;
     }
     
     return [end]; // Fallback to direct path

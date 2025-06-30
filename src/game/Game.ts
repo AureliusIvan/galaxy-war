@@ -173,14 +173,14 @@ export class Game {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  private startFirstWave() {
+  private async startFirstWave() {
     this.currentWave = 1;
-    this.spawnWave(1);
+    await this.spawnWave(1);
     this.gameStartTime = Date.now();
     this.waveStartTime = Date.now();
   }
 
-  private spawnWave(waveNumber: number) {
+  private async spawnWave(waveNumber: number) {
     // Clear existing enemies and power-ups
     this.enemies.forEach(enemy => enemy.cleanup(this.scene));
     this.powerUps.forEach(powerUp => powerUp.cleanup(this.scene));
@@ -192,15 +192,15 @@ export class Game {
     // Load level geometry (always use level 1 for endless mode)
     this.level.loadLevel(1);
 
-    // Initialize AI systems AFTER level is loaded
+    // Initialize AI systems AFTER level is loaded (asynchronously)
     try {
-      PathFinder.initializeGrid(this.level);
+      await PathFinder.initializeGrid(this.level);
     } catch (error) {
       console.warn('Failed to initialize AI pathfinding:', error);
     }
 
-    // Calculate enemies for this wave - starts with 5, increases by 3 each wave
-    this.enemiesInCurrentWave = Math.min(3 + waveNumber * 2, 25); // Cap at 25 enemies max
+    // Calculate enemies for this wave - starts with 3, increases gradually 
+    this.enemiesInCurrentWave = Math.min(3 + Math.floor(waveNumber * 1.5), 15); // Cap at 15 enemies max (reduced for performance)
     this.initialEnemiesInWave = this.enemiesInCurrentWave;
     
     this.spawnEnemies(waveNumber);
@@ -436,8 +436,8 @@ export class Game {
       // Check lightsaber attack
       if (this.player.isAttacking() && enemy.isAlive()) {
         const distance = enemy.getPosition().distanceTo(playerPosition);
-        const isBehind = this.isPlayerBehindEnemy(enemy, playerPosition);
         if (distance < 3) {
+          const isBehind = this.isPlayerBehindEnemy(enemy, playerPosition);
           this.audioManager?.playHitSound();
           try {
             AICoordinator.getInstance().updatePlayerThreatLevel('damage');
@@ -607,7 +607,10 @@ export class Game {
     if (this.betweenWaves) {
       this.waveTransitionTimer--;
       if (this.waveTransitionTimer <= 0) {
-        this.spawnWave(this.currentWave);
+        // Spawn wave asynchronously
+        this.spawnWave(this.currentWave).catch(error => {
+          console.warn('Failed to spawn wave:', error);
+        });
       }
     }
 
@@ -617,8 +620,8 @@ export class Game {
     // Update game objects
     this.player.update(this.level);
 
-    // Update AI coordination (throttled)
-    if (Math.random() < 0.1) { // Only 10% of frames to reduce load
+    // Update AI coordination (heavily throttled)
+    if (Math.random() < 0.02) { // Only 2% of frames to reduce load
       try {
         AICoordinator.getInstance().updateFormations(this.enemies, this.player.getPosition());
       } catch (error) {
@@ -628,7 +631,6 @@ export class Game {
 
     this.enemies.forEach(enemy => enemy.update(this.player.getPosition(), this.level));
     this.powerUps.forEach(powerUp => powerUp.update());
-    this.throwableBoxes.forEach(box => box.update(this.enemies, this.level));
     this.throwableBoxes.forEach(box => box.update(this.enemies, this.level));
     this.particleSystem.update();
 
@@ -670,8 +672,10 @@ export class Game {
     // Reset player
     this.player.reset();
     
-    // Start first wave
-    this.startFirstWave();
+    // Start first wave asynchronously
+    this.startFirstWave().catch(error => {
+      console.warn('Failed to start first wave on restart:', error);
+    });
     
     // Restart game loop
     this.start();
@@ -681,9 +685,13 @@ export class Game {
     if (!this.animationId) {
       // Start background music and first wave
       this.audioManager?.startBackgroundMusic();
-      this.startFirstWave();
       this.gameRunning = true;
       this.animationId = requestAnimationFrame(this.gameLoop);
+      
+      // Start first wave asynchronously
+      this.startFirstWave().catch(error => {
+        console.warn('Failed to start first wave:', error);
+      });
     }
   }
 

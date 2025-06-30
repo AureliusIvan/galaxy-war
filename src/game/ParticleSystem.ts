@@ -8,13 +8,17 @@ export class ParticleSystem {
     life: number;
     maxLife: number;
   }> = [];
+  private maxParticles = 100; // Cap to prevent performance issues
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
 
   public createHitEffect(position: THREE.Vector3) {
-    const particleCount = 50; // More particles for better effect
+    // Check particle limit
+    if (this.particles.length >= this.maxParticles) return;
+    
+    const particleCount = 30; // Reduced for performance
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -66,7 +70,10 @@ export class ParticleSystem {
   }
 
   public createExplosion(position: THREE.Vector3) {
-    const particleCount = 50;
+    // Check particle limit
+    if (this.particles.length >= this.maxParticles) return;
+    
+    const particleCount = 35; // Reduced for performance
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -116,7 +123,10 @@ export class ParticleSystem {
   }
 
   public createPickupEffect(position: THREE.Vector3) {
-    const particleCount = 20;
+    // Check particle limit
+    if (this.particles.length >= this.maxParticles) return;
+    
+    const particleCount = 15; // Reduced for performance
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -270,7 +280,9 @@ export class ParticleSystem {
   }
 
   public update() {
-    this.particles.forEach((particle, index) => {
+    // Use reverse iteration to safely remove particles during loop
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const particle = this.particles[i];
       particle.life--;
       
       // Update position
@@ -293,9 +305,9 @@ export class ParticleSystem {
         if (particle.mesh.material instanceof THREE.PointsMaterial) {
           particle.mesh.material.dispose();
         }
-        this.particles.splice(index, 1);
+        this.particles.splice(i, 1);
       }
-    });
+    }
   }
 
   public cleanup() {
