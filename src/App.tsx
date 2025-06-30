@@ -9,8 +9,17 @@ import { PauseScreen } from './components/PauseScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { WeaponType } from './game/Player';
 import { AudioManager } from './game/AudioManager';
+import { supabase } from './lib/supabase';
+import StatusAlert from './components/StatusAlert';
 
 export type GameState = 'menu' | 'playing' | 'paused' | 'gameOver' | 'leaderboard' | 'usernameInput';
+
+// Define a type for our status messages to ensure consistency
+type StatusMessage = {
+  message: string;
+  duration: number;
+  key: number; // Key to force re-rendering for consecutive messages
+};
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,6 +36,8 @@ function App() {
   const [waveProgress, setWaveProgress] = useState(0);
   const [username, setUsername] = useState<string>('');
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, 1.6, 0));
+  const [score, setScore] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
 
   // Create audio manager instance
   const audioManagerRef = useRef<AudioManager | null>(null);
@@ -58,7 +69,8 @@ function App() {
           onWaveProgress: setWaveProgress,
           onSurvivalTimeChange: setSurvivalTime,
           onPlayerPositionChange: setPlayerPosition,
-          onGameOver: () => setGameState('gameOver'),
+          onGameOver: handleGameOver,
+          onStatusMessage: showStatusMessage,
         });
         
         // Initialize game with audio manager asynchronously
@@ -81,26 +93,57 @@ function App() {
     };
   }, [gameState]);
 
-  const startGame = () => {
-    if (!username) {
-      setGameState('usernameInput');
-      return;
-    }
+  const startGame = async (name: string) => {
+    setUsername(name);
+    localStorage.setItem('galacticWarsUsername', name);
     setGameState('playing');
     setHealth(100);
     setSurvivalTime(0);
     setCurrentWave(1);
     setWaveProgress(0);
+
+    if (canvasRef.current) {
+      const gameInstance = new Game(canvasRef.current, {
+        onHealthChange: setHealth,
+        onEnemiesChange: setEnemiesLeft,
+        onEnemiesInWaveChange: setEnemiesInWave,
+        onAmmoChange: (ammo, maxAmmo) => {
+          setAmmo(ammo);
+          setMaxAmmo(maxAmmo);
+        },
+        onWeaponChange: setCurrentWeapon,
+        onWaveComplete: setCurrentWave,
+        onWaveProgress: setWaveProgress,
+        onSurvivalTimeChange: setSurvivalTime,
+        onPlayerPositionChange: setPlayerPosition,
+        onGameOver: handleGameOver,
+        onStatusMessage: showStatusMessage,
+      });
+
+      const audioManager = new AudioManager();
+      await gameInstance.init(audioManager);
+      
+      setGameRef(gameInstance);
+      gameInstance.start();
+    }
   };
 
-  const handleUsernameSet = (newUsername: string) => {
-    setUsername(newUsername);
-    localStorage.setItem('galacticWarsUsername', newUsername);
+  const handleGameOver = () => {
+    setGameState('gameOver');
+  };
+
+  const pauseGame = () => {
+    setGameState('paused');
+    if (gameRef.current) {
+      gameRef.current.pause();
+    }
+  };
+
+  const resumeGame = () => {
     setGameState('playing');
-    setHealth(100);
-    setSurvivalTime(0);
-    setCurrentWave(1);
-    setWaveProgress(0);
+    if (gameRef.current) {
+      gameRef.current.resume();
+    }
   };
 
   const restartGame = () => {
@@ -114,18 +157,8 @@ function App() {
     }
   };
 
-  const resumeGame = () => {
-    setGameState('playing');
-    if (gameRef.current) {
-      gameRef.current.resume();
-    }
-  };
-
-  const pauseGame = () => {
-    setGameState('paused');
-    if (gameRef.current) {
-      gameRef.current.pause();
-    }
+  const showStatusMessage = (message: string, duration: number = 2000) => {
+    setStatusMessage({ message, duration, key: Date.now() });
   };
 
   return (
@@ -148,7 +181,7 @@ function App() {
       )}
 
       {gameState === 'usernameInput' && (
-        <UsernameInput onUsernameSet={handleUsernameSet} />
+        <UsernameInput onUsernameSet={startGame} />
       )}
 
       {gameState === 'playing' && (
@@ -183,6 +216,15 @@ function App() {
           username={username}
           onRestart={restartGame}
           onMainMenu={() => setGameState('menu')}
+        />
+      )}
+
+      {statusMessage && (
+        <StatusAlert 
+          key={statusMessage.key} 
+          message={statusMessage.message} 
+          duration={statusMessage.duration}
+          onComplete={() => setStatusMessage(null)}
         />
       )}
     </div>

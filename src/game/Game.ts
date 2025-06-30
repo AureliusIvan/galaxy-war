@@ -21,6 +21,7 @@ interface GameCallbacks {
   onSurvivalTimeChange: (time: number) => void;
   onPlayerPositionChange: (position: THREE.Vector3) => void;
   onGameOver: () => void;
+  onStatusMessage: (message: string, duration?: number) => void;
 }
 
 export class Game {

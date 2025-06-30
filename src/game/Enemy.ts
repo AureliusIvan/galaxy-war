@@ -22,7 +22,7 @@ interface EnemyConfig {
 
 const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   normal: {
-    maxHealth: 120,
+    maxHealth: 225,
     speed: 0.045,
     size: 1.0,
     color: 0x333333,
@@ -30,7 +30,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 2
   },
   scout: {
-    maxHealth: 60,
+    maxHealth: 135,
     speed: 0.075,
     size: 0.7,
     color: 0x44aa44,
@@ -38,7 +38,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 1.5
   },
   heavy: {
-    maxHealth: 300,
+    maxHealth: 675,
     speed: 0.022,
     size: 1.4,
     color: 0x884444,
@@ -46,7 +46,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 2.5
   },
   ranged: {
-    maxHealth: 80,
+    maxHealth: 180,
     speed: 0.03,
     size: 0.9,
     color: 0x4444aa,
@@ -56,7 +56,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     shootCooldown: 120
   },
   exploder: {
-    maxHealth: 90,
+    maxHealth: 200,
     speed: 0.05,
     size: 1.1,
     color: 0xaa4444,
@@ -65,7 +65,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     explosionRadius: 5
   },
   shielded: {
-    maxHealth: 200,
+    maxHealth: 450,
     speed: 0.027,
     size: 1.3,
     color: 0x6666aa,
@@ -74,7 +74,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
     hasShield: true
   },
   drone: {
-    maxHealth: 40,
+    maxHealth: 90,
     speed: 0.06,
     size: 0.5,
     color: 0xaaaaaa,

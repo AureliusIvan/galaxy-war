@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Enemy } from './Enemy';
 import { ThrowableBox } from './ThrowableBox';
+import { ParticleSystem } from './ParticleSystem';
+import { AudioManager } from './AudioManager';
 
 export type WeaponType = 'lightsaber' | 'blaster' | 'shotgun';
 
@@ -9,6 +11,12 @@ interface Laser {
   velocity: THREE.Vector3;
   damage: number;
   life: number;
+}
+
+interface PlayerCallbacks {
+  onAmmoChange: (ammo: number, maxAmmo: number) => void;
+  onWeaponChange: (weapon: WeaponType) => void;
+  onStatusMessage: (message: string, duration?: number) => void;
 }
 
 export class Player {
@@ -46,8 +54,7 @@ export class Player {
   private maxBlasterAmmo = 30;
   private shotgunAmmo = 8;
   private maxShotgunAmmo = 8;
-  private onAmmoChange?: (ammo: number, maxAmmo: number) => void;
-  private onWeaponChange?: (weapon: WeaponType) => void;
+  private callbacks: Partial<PlayerCallbacks> = {};
   
   // Camera rotation tracking
   private yaw = 0; // Horizontal rotation
@@ -91,13 +98,14 @@ export class Player {
     this.particleSystem = particleSystem;
   }
 
-  public setCallbacks(callbacks: { onAmmoChange?: (ammo: number, maxAmmo: number) => void, onWeaponChange?: (weapon: WeaponType) => void }) {
-    this.onAmmoChange = callbacks.onAmmoChange;
-    this.onWeaponChange = callbacks.onWeaponChange;
+  public setCallbacks(callbacks: Partial<PlayerCallbacks>) {
+    this.callbacks = callbacks;
     
     // Initial callback
+    if (this.callbacks.onWeaponChange) {
+      this.callbacks.onWeaponChange(this.currentWeapon);
+    }
     this.updateAmmoDisplay();
-    if (this.onWeaponChange) this.onWeaponChange(this.currentWeapon);
   }
 
   private createLightsaber() {
@@ -425,16 +433,16 @@ export class Player {
 
     this.updateWeaponVisibility();
     
-    if (this.onWeaponChange) {
-      this.onWeaponChange(this.currentWeapon);
+    if (this.callbacks.onWeaponChange) {
+      this.callbacks.onWeaponChange(this.currentWeapon);
     }
   }
 
   private switchToWeapon(weapon: WeaponType) {
     this.currentWeapon = weapon;
     this.updateWeaponVisibility();
-    if (this.onWeaponChange) {
-      this.onWeaponChange(this.currentWeapon);
+    if (this.callbacks.onWeaponChange) {
+      this.callbacks.onWeaponChange(this.currentWeapon);
     }
   }
 
@@ -1320,60 +1328,90 @@ export class Player {
   }
 
   private reloadBlaster() {
-    // Don't reload if already full, already reloading, or in cooldown
     if (this.blasterAmmo >= this.maxBlasterAmmo || this.isReloading || this.reloadCooldown > 0) {
       return;
     }
-    
+    this.callbacks.onStatusMessage?.('Reloading Blaster...', 1500);
     this.isReloading = true;
     this.reloadCooldown = 90; // 1.5 seconds at 60fps
     
     // Animate reload
     this.animateReload();
     
-    // Restore ammo after reload time
     setTimeout(() => {
       this.blasterAmmo = this.maxBlasterAmmo;
-      if (this.onAmmoChange) {
-        this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
-      }
+      this.isReloading = false;
+      this.updateAmmoDisplay();
     }, 1500);
   }
   
   private animateReload() {
-    if (!this.blaster) return;
+    const weapon = this.currentWeapon === 'blaster' ? this.blaster : this.shotgun;
+    if (!weapon) return;
+
+    const originalPosition = weapon.position.clone();
+    const originalRotation = weapon.rotation.clone();
     
-    // Reload animation - rotate weapon down and back up
-    const originalRotation = this.blaster.rotation.x;
-    const reloadRotation = originalRotation - Math.PI / 6;
-    
-    // Down motion
-    const animateDown = (progress: number) => {
-      if (this.blaster) {
-        this.blaster.rotation.x = originalRotation + (reloadRotation - originalRotation) * progress;
-        this.blaster.position.y = -0.2 - progress * 0.3;
-        
-        if (progress < 1) {
-          requestAnimationFrame(() => animateDown(progress + 0.1));
-        } else {
-          // Start up motion after brief pause
-          setTimeout(() => {
-            const animateUp = (upProgress: number) => {
-              if (this.blaster) {
-                this.blaster.rotation.x = reloadRotation + (originalRotation - reloadRotation) * upProgress;
-                this.blaster.position.y = -0.5 + upProgress * 0.3;
-                
-                if (upProgress < 1) {
-                  requestAnimationFrame(() => animateUp(upProgress + 0.08));
-                }
-              }
-            };
-            animateUp(0);
-          }, 300);
+    let duration = 1200; // Total duration of animation
+    let downwardMotion = -0.2;
+    let rotation = -Math.PI / 4;
+
+    if (this.currentWeapon === 'shotgun') {
+        duration = 1800; // Longer for shotgun pump
+        downwardMotion = -0.3;
+        rotation = -Math.PI / 6;
+    }
+
+    const startTime = Date.now();
+
+    const animate = () => {
+        const elapsed = Date.now() - startTime;
+        let progress = elapsed / duration;
+
+        if (progress >= 1) {
+            weapon.position.copy(originalPosition);
+            weapon.rotation.copy(originalRotation);
+            return;
         }
-      }
+
+        // Use a sinusoidal ease-in-out for smooth motion
+        progress = 0.5 * (1 - Math.cos(progress * Math.PI));
+
+        // Animation sequence
+        if (this.currentWeapon === 'blaster') {
+            // Quick downward snap and tilt
+            const peak = 0.5; // at what point animation changes
+            if (progress < peak) {
+                const phaseProgress = progress / peak;
+                weapon.position.y = originalPosition.y + downwardMotion * phaseProgress;
+                weapon.rotation.x = originalRotation.x + rotation * phaseProgress;
+                weapon.rotation.z = originalRotation.z + (rotation / 2) * phaseProgress;
+            } else {
+                const phaseProgress = (progress - peak) / (1 - peak);
+                weapon.position.y = (originalPosition.y + downwardMotion) - (downwardMotion * phaseProgress);
+                weapon.rotation.x = (originalRotation.x + rotation) - (rotation * phaseProgress);
+                weapon.rotation.z = (originalRotation.z + rotation / 2) - ((rotation/2) * phaseProgress);
+            }
+        } else if (this.currentWeapon === 'shotgun') {
+            // Pumping animation
+            const pumpTime = 0.4;
+            const returnTime = 0.8;
+            
+            if (progress < pumpTime) { // "Pump back"
+                const phaseProgress = progress / pumpTime;
+                weapon.position.z = originalPosition.z - 0.2 * phaseProgress;
+            } else if (progress < returnTime) { // Hold
+                 weapon.position.z = originalPosition.z - 0.2;
+            } else { // "Pump forward"
+                const phaseProgress = (progress - returnTime) / (1 - returnTime);
+                weapon.position.z = (originalPosition.z - 0.2) + (0.2 * phaseProgress);
+            }
+        }
+        
+        requestAnimationFrame(animate);
     };
-    animateDown(0);
+    
+    animate();
   }
   
   public getReloadProgress(): number {
@@ -1388,8 +1426,8 @@ export class Player {
   // Add method to manually reload (for UI button if needed)
   public manualReload() {
     this.blasterAmmo = this.maxBlasterAmmo;
-    if (this.onAmmoChange) {
-      this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
+    if (this.callbacks.onAmmoChange) {
+      this.callbacks.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
     }
     
     // Play reload sound
@@ -1431,8 +1469,8 @@ export class Player {
     if (this.blaster) this.blaster.visible = false;
     
     // Trigger callbacks
-    if (this.onAmmoChange) this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
-    if (this.onWeaponChange) this.onWeaponChange(this.currentWeapon);
+    if (this.callbacks.onAmmoChange) this.callbacks.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
+    if (this.callbacks.onWeaponChange) this.callbacks.onWeaponChange(this.currentWeapon);
   }
 
   public takeDamage(amount: number) {
@@ -1579,14 +1617,12 @@ export class Player {
   }
 
   private updateAmmoDisplay() {
-    if (!this.onAmmoChange) return;
-
     if (this.currentWeapon === 'blaster') {
-      this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
+      this.callbacks.onAmmoChange?.(this.blasterAmmo, this.maxBlasterAmmo);
     } else if (this.currentWeapon === 'shotgun') {
-      this.onAmmoChange(this.shotgunAmmo, this.maxShotgunAmmo);
+      this.callbacks.onAmmoChange?.(this.shotgunAmmo, this.maxShotgunAmmo);
     } else {
-      this.onAmmoChange(-1, -1); // For lightsaber
+      this.callbacks.onAmmoChange?.(-1, -1); // No ammo for lightsaber
     }
   }
 
@@ -1594,7 +1630,7 @@ export class Player {
     if (this.shotgunAmmo >= this.maxShotgunAmmo || this.isReloading || this.reloadCooldown > 0) {
       return;
     }
-    
+    this.callbacks.onStatusMessage?.('Reloading Shotgun...', 2000);
     this.isReloading = true;
     this.reloadCooldown = 120; // Slower reload for shotgun
     
@@ -1603,6 +1639,7 @@ export class Player {
     
     setTimeout(() => {
       this.shotgunAmmo = this.maxShotgunAmmo;
+      this.isReloading = false;
       this.updateAmmoDisplay();
     }, 2000);
   }
