@@ -47,7 +47,7 @@ export class Player {
   private lasers: Laser[] = [];
   private blasterRecoil = 0;
   private blasterRecoilVelocity = 0;
-  private blasterBasePosition = new THREE.Vector3(0.25, -0.2, -0.6);
+  private blasterBasePosition = new THREE.Vector3(0, -0.2, -0.6); // Centered position
   private audioManager?: any; // Will be set by Game class
   private particleSystem?: any; // Will be set by Game class
   
@@ -309,9 +309,9 @@ export class Player {
     energyCell.name = "energyCore"; // Keep name for animations
     this.blaster.add(energyCell);
 
-    // Position blaster relative to camera
-    this.blaster.position.set(0.25, -0.2, -0.6);
-    this.blaster.rotation.set(0, -Math.PI / 2 - 0.1, 0); // Point forward
+    // Position blaster relative to camera (centered)
+    this.blaster.position.set(0, -0.2, -0.6);
+    this.blaster.rotation.set(0, -Math.PI / 2, 0); // Point straight forward
     this.blaster.scale.set(0.9, 0.9, 0.9);
     this.blaster.visible = false;
     
@@ -619,15 +619,15 @@ export class Player {
 
   private triggerBlasterRecoil() {
     if (!this.blaster) return;
-    this.blasterRecoilVelocity = 0.2; // Initial kick
+    this.blasterRecoilVelocity = 0.05; // Minimized recoil kick
   }
 
   private updateBlasterRecoil() {
     if (!this.blaster) return;
 
-    // Spring physics for recoil
-    const springStiffness = 0.1;
-    const damping = 0.15;
+    // Spring physics for minimized recoil
+    const springStiffness = 0.15; // Slightly stiffer for quicker return
+    const damping = 0.25; // More damping for less oscillation
 
     // Force pulling back to base position
     const springForce = -this.blasterRecoil * springStiffness;
@@ -641,8 +641,8 @@ export class Player {
     // Update recoil position
     this.blasterRecoil += this.blasterRecoilVelocity;
     
-    // Apply recoil to the blaster model
-    const recoilDisplacement = new THREE.Vector3(-this.blasterRecoil, this.blasterRecoil * 0.2, 0); // Recoil back and slightly up
+    // Apply minimized recoil to the blaster model
+    const recoilDisplacement = new THREE.Vector3(-this.blasterRecoil, this.blasterRecoil * 0.1, 0); // Less vertical movement
     this.blaster.position.copy(this.blasterBasePosition).add(recoilDisplacement);
   }
 
