@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Enemy } from './Enemy';
 import { ThrowableBox } from './ThrowableBox';
 
-export type WeaponType = 'lightsaber' | 'blaster';
+export type WeaponType = 'lightsaber' | 'blaster' | 'shotgun';
 
 interface Laser {
   mesh: THREE.Mesh;
@@ -34,6 +34,7 @@ export class Player {
   private nearestBox: ThrowableBox | null = null;
   private lightsaber: THREE.Group | null = null;
   private blaster: THREE.Group | null = null;
+  private shotgun: THREE.Group | null = null;
   private scene: THREE.Scene;
   private lasers: Laser[] = [];
   private audioManager?: any; // Will be set by Game class
@@ -43,6 +44,8 @@ export class Player {
   private currentWeapon: WeaponType = 'lightsaber';
   private blasterAmmo = 30;
   private maxBlasterAmmo = 30;
+  private shotgunAmmo = 8;
+  private maxShotgunAmmo = 8;
   private onAmmoChange?: (ammo: number, maxAmmo: number) => void;
   private onWeaponChange?: (weapon: WeaponType) => void;
   
@@ -76,6 +79,7 @@ export class Player {
     this.setupControls();
     this.createLightsaber();
     this.createBlaster();
+    this.createShotgun();
     this.reset();
   }
 
@@ -92,7 +96,7 @@ export class Player {
     this.onWeaponChange = callbacks.onWeaponChange;
     
     // Initial callback
-    if (this.onAmmoChange) this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
+    this.updateAmmoDisplay();
     if (this.onWeaponChange) this.onWeaponChange(this.currentWeapon);
   }
 
@@ -100,14 +104,43 @@ export class Player {
     this.lightsaber = new THREE.Group();
     
     // Lightsaber handle
-    const handleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3);
-    const handleMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0x333333,
-      shininess: 100
+    const handleMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x4a4a4a,
+      metalness: 0.8,
+      roughness: 0.3,
     });
+    const handleGeometry = new THREE.CylinderGeometry(0.05, 0.06, 0.4);
     const handle = new THREE.Mesh(handleGeometry, handleMaterial);
     handle.position.y = -0.2;
     this.lightsaber.add(handle);
+
+    // Activator button
+    const activatorGeometry = new THREE.BoxGeometry(0.02, 0.05, 0.02);
+    const activatorMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0xaa0000,
+        emissiveIntensity: 1,
+    });
+    const activator = new THREE.Mesh(activatorGeometry, activatorMaterial);
+    activator.position.set(0, -0.1, 0.05);
+    handle.add(activator);
+
+    // Decorative rings
+    const ringGeometry = new THREE.TorusGeometry(0.055, 0.005, 16, 32);
+    const ringMaterial = new THREE.MeshStandardMaterial({
+        color: 0x222222,
+        metalness: 0.9,
+        roughness: 0.2,
+    });
+
+    const ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring1.rotation.x = Math.PI / 2;
+    ring1.position.y = 0;
+    handle.add(ring1);
+
+    const ring2 = ring1.clone();
+    ring2.position.y = -0.15;
+    handle.add(ring2);
     
     // Lightsaber blade - use MeshPhongMaterial for emissive properties
     const bladeGeometry = new THREE.CylinderGeometry(0.013, 0.013, 1.5);
@@ -345,20 +378,71 @@ export class Player {
     this.camera.add(this.blaster);
   }
 
+  private createShotgun() {
+    this.shotgun = new THREE.Group();
+
+    // Main body
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3d2d1d, metalness: 0.8, roughness: 0.5 });
+    const bodyGeometry = new THREE.BoxGeometry(0.15, 0.18, 0.7);
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    this.shotgun.add(body);
+
+    // Barrel
+    const barrelMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.3 });
+    const barrelGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.6, 12);
+    const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.05, 0.65);
+    this.shotgun.add(barrel);
+
+    // Pump grip
+    const pumpGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
+    const pumpMaterial = new THREE.MeshStandardMaterial({ color: 0x2a1d0d, metalness: 0.7, roughness: 0.6 });
+    const pump = new THREE.Mesh(pumpGeometry, pumpMaterial);
+    pump.rotation.x = Math.PI / 2;
+    pump.position.set(0, -0.02, 0.4);
+    this.shotgun.add(pump);
+
+    // Stock
+    const stockGeometry = new THREE.BoxGeometry(0.1, 0.15, 0.4);
+    const stock = new THREE.Mesh(stockGeometry, bodyMaterial);
+    stock.position.z = -0.5;
+    this.shotgun.add(stock);
+    
+    this.shotgun.position.set(0.35, -0.3, -0.8);
+    this.shotgun.rotation.set(-Math.PI / 12, Math.PI / 18, 0);
+    this.shotgun.visible = false;
+    
+    // Add to the camera
+    this.camera.add(this.shotgun);
+  }
+
   private switchWeapon() {
-    if (this.currentWeapon === 'lightsaber') {
-      this.currentWeapon = 'blaster';
-      this.lightsaber!.visible = false;
-      this.blaster!.visible = true;
-    } else {
-      this.currentWeapon = 'lightsaber';
-      this.blaster!.visible = false;
-      this.lightsaber!.visible = false; // Will be shown during attack
-    }
+    const weapons: WeaponType[] = ['lightsaber', 'blaster', 'shotgun'];
+    const currentIndex = weapons.indexOf(this.currentWeapon);
+    const nextIndex = (currentIndex + 1) % weapons.length;
+    this.currentWeapon = weapons[nextIndex];
+
+    this.updateWeaponVisibility();
     
     if (this.onWeaponChange) {
       this.onWeaponChange(this.currentWeapon);
     }
+  }
+
+  private switchToWeapon(weapon: WeaponType) {
+    this.currentWeapon = weapon;
+    this.updateWeaponVisibility();
+    if (this.onWeaponChange) {
+      this.onWeaponChange(this.currentWeapon);
+    }
+  }
+
+  private updateWeaponVisibility() {
+    this.lightsaber!.visible = this.currentWeapon === 'lightsaber' && !this._isAttacking;
+    this.blaster!.visible = this.currentWeapon === 'blaster';
+    this.shotgun!.visible = this.currentWeapon === 'shotgun';
+    this.updateAmmoDisplay();
   }
 
   private setupControls() {
@@ -372,12 +456,17 @@ export class Player {
         case 'KeyR': 
           if (this.currentWeapon === 'blaster') {
             this.reloadBlaster();
+          } else if (this.currentWeapon === 'shotgun') {
+            this.reloadShotgun();
           }
           break;
         case 'Space': 
           event.preventDefault(); // Prevent page scroll
           this.jump(); 
           break;
+        case 'Digit1': this.switchToWeapon('lightsaber'); break;
+        case 'Digit2': this.switchToWeapon('blaster'); break;
+        case 'Digit3': this.switchToWeapon('shotgun'); break;
       }
     });
 
@@ -476,6 +565,8 @@ export class Player {
         this.lightsaberAttack();
       } else if (this.currentWeapon === 'blaster') {
         this.blasterAttack();
+      } else if (this.currentWeapon === 'shotgun') {
+        this.shotgunAttack();
       }
     }
   }
@@ -503,9 +594,7 @@ export class Player {
     // Trigger recoil animation
     this.triggerBlasterRecoil();
     
-    if (this.onAmmoChange) {
-      this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
-    }
+    this.updateAmmoDisplay();
     
     // Auto-reload when ammo runs out
     if (this.blasterAmmo <= 0) {
@@ -518,7 +607,23 @@ export class Player {
     this.showBlasterMuzzleFlash();
   }
 
-  private shootLaser() {
+  private shotgunAttack() {
+    if (this.shotgunAmmo <= 0) return;
+    
+    this.shotgunAmmo--;
+    this.attackCooldown = 60; // Slower fire rate for shotgun
+    this._isAttacking = true;
+    this.audioManager?.playWeaponSound('shotgun'); // Assuming a shotgun sound can be added
+    
+    // Shoot multiple pellets
+    for (let i = 0; i < 8; i++) {
+      this.shootLaser(true); // Pass a flag to indicate shotgun spread
+    }
+    
+    this.updateAmmoDisplay();
+  }
+
+  private shootLaser(isShotgunPellet = false) {
     // Create laser projectile
     const laserGeometry = new THREE.CylinderGeometry(0.02, 0.02, 2.0); // Slightly thinner laser
     const laserMaterial = new THREE.MeshBasicMaterial({
@@ -545,6 +650,14 @@ export class Player {
     
     // Set laser direction and rotation
     const direction = this.camera.getWorldDirection(new THREE.Vector3());
+
+    if (isShotgunPellet) {
+        const spread = 0.08;
+        direction.x += (Math.random() - 0.5) * spread;
+        direction.y += (Math.random() - 0.5) * spread;
+        direction.z += (Math.random() - 0.5) * spread;
+    }
+
     laserMesh.lookAt(laserMesh.position.clone().add(direction));
     laserMesh.rotateX(Math.PI / 2);
     
@@ -1108,12 +1221,19 @@ export class Player {
     // Update camera position
     this.camera.position.copy(this.position);
 
-    // Update weapon visibility based on current weapon
+    // Update weapon visibility and animations
     if (this.currentWeapon === 'blaster' && this.blaster) {
       this.blaster.visible = true;
-      if (this.lightsaber && !this._isAttacking) {
-        this.lightsaber.visible = false;
+      if (this.lightsaber) this.lightsaber.visible = false;
+    } else if (this.currentWeapon === 'lightsaber' && this.lightsaber) {
+      if (!this._isAttacking) {
+          this.lightsaber.visible = true;
+          // Idle animation
+          const time = Date.now() * 0.002;
+          this.lightsaber.position.y = -0.3 + Math.sin(time) * 0.02;
+          this.lightsaber.rotation.z = -Math.PI / 6 + Math.cos(time * 0.5) * 0.05;
       }
+      if (this.blaster) this.blaster.visible = false;
     }
   }
 
@@ -1456,5 +1576,34 @@ export class Player {
         }
       });
     }
+  }
+
+  private updateAmmoDisplay() {
+    if (!this.onAmmoChange) return;
+
+    if (this.currentWeapon === 'blaster') {
+      this.onAmmoChange(this.blasterAmmo, this.maxBlasterAmmo);
+    } else if (this.currentWeapon === 'shotgun') {
+      this.onAmmoChange(this.shotgunAmmo, this.maxShotgunAmmo);
+    } else {
+      this.onAmmoChange(-1, -1); // For lightsaber
+    }
+  }
+
+  private reloadShotgun() {
+    if (this.shotgunAmmo >= this.maxShotgunAmmo || this.isReloading || this.reloadCooldown > 0) {
+      return;
+    }
+    
+    this.isReloading = true;
+    this.reloadCooldown = 120; // Slower reload for shotgun
+    
+    // Animate reload (can be a different animation)
+    this.animateReload(); 
+    
+    setTimeout(() => {
+      this.shotgunAmmo = this.maxShotgunAmmo;
+      this.updateAmmoDisplay();
+    }, 2000);
   }
 }

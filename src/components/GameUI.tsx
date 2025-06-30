@@ -107,23 +107,41 @@ export const GameUI: React.FC<GameUIProps> = ({
             <div className="flex items-center space-x-2">
               {currentWeapon === 'lightsaber' ? (
                 <Sword className="w-5 h-5 text-cyan-400" />
-              ) : (
+              ) : currentWeapon === 'blaster' ? (
                 <Zap className="w-5 h-5 text-red-400" />
+              ) : (
+                <Zap className="w-5 h-5 text-yellow-400" /> // Shotgun icon
               )}
               <span className="text-white text-sm font-semibold capitalize">{currentWeapon}</span>
             </div>
             
-            {currentWeapon === 'blaster' && (
+            {currentWeapon !== 'lightsaber' && (
               <div className="flex items-center space-x-2">
                 <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-400 transition-all duration-300"
+                    className={`h-full transition-all duration-300 ${
+                      currentWeapon === 'blaster' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-400' 
+                        : 'bg-gradient-to-r from-green-500 to-lime-400'
+                    }`}
                     style={{ width: `${(ammo / maxAmmo) * 100}%` }}
                   />
                 </div>
                 <span className="text-yellow-400 text-sm font-semibold">{ammo}/{maxAmmo}</span>
               </div>
             )}
+          </div>
+          {/* Weapon Selection Display */}
+          <div className="flex items-center space-x-2">
+              <div className={`p-1 rounded ${currentWeapon === 'lightsaber' ? 'bg-cyan-500' : 'bg-gray-700'}`}>
+                  <Sword className="w-4 h-4 text-white" />
+              </div>
+              <div className={`p-1 rounded ${currentWeapon === 'blaster' ? 'bg-red-500' : 'bg-gray-700'}`}>
+                  <Zap className="w-4 h-4 text-white" />
+              </div>
+              <div className={`p-1 rounded ${currentWeapon === 'shotgun' ? 'bg-yellow-500' : 'bg-gray-700'}`}>
+                  <Zap className="w-4 h-4 text-white" />
+              </div>
           </div>
         </div>
       </div>

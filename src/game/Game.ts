@@ -200,7 +200,7 @@ export class Game {
     }
 
     // Calculate enemies for this wave - starts with 3, increases gradually 
-    this.enemiesInCurrentWave = Math.min(5 + Math.floor(waveNumber * 1.8), 25); // Cap at 25 enemies max
+    this.enemiesInCurrentWave = Math.min(4 + Math.floor(waveNumber * 1.44), 20);
     this.initialEnemiesInWave = this.enemiesInCurrentWave;
     
     this.spawnEnemies(waveNumber);

@@ -25,10 +25,11 @@ export class Level {
     const wallThickness = 2;
 
     // Create arena floor
-    const floorGeometry = new THREE.PlaneGeometry(arenaSize, arenaSize);
-    const floorMaterial = new THREE.MeshPhongMaterial({ 
+    const floorGeometry = new THREE.PlaneGeometry(arenaSize, arenaSize, 50, 50);
+    const floorMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x222244,
-      shininess: 30
+      metalness: 0.6,
+      roughness: 0.7,
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
@@ -44,9 +45,10 @@ export class Level {
     this.levelMeshes.push(gridHelper);
 
     // Create boundary walls
-    const wallMaterial = new THREE.MeshPhongMaterial({ 
+    const wallMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x334455,
-      shininess: 50
+      metalness: 0.7,
+      roughness: 0.4,
     });
 
     const halfSize = arenaSize / 2;
@@ -106,27 +108,34 @@ export class Level {
 
     // Add some platforms for variety
     this.createPlatforms([
-      { x: 15, z: 15, size: 4 },
-      { x: -15, z: -15, size: 4 },
-      { x: 15, z: -15, size: 3 },
-      { x: -15, z: 15, size: 3 },
-      { x: 0, z: 18, size: 3 },
-      { x: 0, z: -18, size: 3 }
+      { x: 15, z: 15, size: 4, height: 2 },
+      { x: -15, z: -15, size: 4, height: 3 },
+      { x: 15, z: -15, size: 3, height: 1.5 },
+      { x: -15, z: 15, size: 3, height: 2.5 },
+      { x: 0, z: 18, size: 5, height: 4, isRamp: true, rotation: Math.PI / 2 },
+      { x: 0, z: -18, size: 3, height: 2 }
     ]);
 
     // Add some cylindrical obstacles
     this.createObstacles();
   }
 
-  private createPlatforms(platforms: Array<{ x: number, z: number, size: number }>) {
+  private createPlatforms(platforms: Array<{ x: number, z: number, size: number, height: number, isRamp?: boolean, rotation?: number }>) {
     platforms.forEach(platform => {
-      const geometry = new THREE.BoxGeometry(platform.size, 0.5, platform.size);
-      const material = new THREE.MeshPhongMaterial({ 
+      const geometry = new THREE.BoxGeometry(platform.size, platform.height, platform.size);
+      const material = new THREE.MeshStandardMaterial({ 
         color: 0x666677,
-        shininess: 80
+        metalness: 0.8,
+        roughness: 0.3,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(platform.x, 0.25, platform.z);
+      mesh.position.set(platform.x, platform.height / 2, platform.z);
+
+      if (platform.isRamp) {
+          mesh.rotation.y = platform.rotation || 0;
+          mesh.scale.y = 0.2; // Make it a ramp
+      }
+
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData = { isCollidable: true };
@@ -149,10 +158,11 @@ export class Level {
   private createObstacles() {
     // Add some cylindrical obstacles
     for (let i = 0; i < 8; i++) {
-      const geometry = new THREE.CylinderGeometry(1.2, 1.2, 3);
-      const material = new THREE.MeshPhongMaterial({ 
+      const geometry = new THREE.CylinderGeometry(1.2, 1.2, 3, 12);
+      const material = new THREE.MeshStandardMaterial({ 
         color: 0x444466,
-        shininess: 100
+        metalness: 0.9,
+        roughness: 0.2,
       });
       const cylinder = new THREE.Mesh(geometry, material);
       
