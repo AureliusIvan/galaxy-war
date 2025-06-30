@@ -23,7 +23,7 @@ interface EnemyConfig {
 const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   normal: {
     maxHealth: 120,
-    speed: 0.02,
+    speed: 0.03,
     size: 1.0,
     color: 0x333333,
     damage: 1,
@@ -31,7 +31,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   scout: {
     maxHealth: 60,
-    speed: 0.04,
+    speed: 0.05,
     size: 0.7,
     color: 0x44aa44,
     damage: 0.5,
@@ -39,7 +39,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   heavy: {
     maxHealth: 300,
-    speed: 0.01,
+    speed: 0.015,
     size: 1.4,
     color: 0x884444,
     damage: 3,
@@ -47,7 +47,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   ranged: {
     maxHealth: 80,
-    speed: 0.015,
+    speed: 0.02,
     size: 0.9,
     color: 0x4444aa,
     damage: 1.5,
@@ -57,7 +57,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   exploder: {
     maxHealth: 90,
-    speed: 0.025,
+    speed: 0.035,
     size: 1.1,
     color: 0xaa4444,
     damage: 5,
@@ -66,7 +66,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   shielded: {
     maxHealth: 200,
-    speed: 0.012,
+    speed: 0.018,
     size: 1.3,
     color: 0x6666aa,
     damage: 2,
@@ -75,7 +75,7 @@ const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   drone: {
     maxHealth: 40,
-    speed: 0.03,
+    speed: 0.04,
     size: 0.5,
     color: 0xaaaaaa,
     damage: 0.5,
@@ -142,7 +142,7 @@ export class Enemy {
     
     // Initialize AI state
     this.aiState = {
-      alertLevel: 0,
+      behavior: 'idle',
       lastKnownPlayerPosition: null,
       currentTarget: null,
       coverPosition: null,
@@ -157,7 +157,7 @@ export class Enemy {
     // Apply difficulty scaling
     this.maxHealth = Math.floor(this.config.maxHealth + difficulty * 20);
     this.health = this.maxHealth;
-    this.speed = this.config.speed + difficulty * 0.005;
+    this.speed = this.config.speed;
     
     // Set initial flying height for drones
     if (this.config.canFly) {
@@ -165,57 +165,8 @@ export class Enemy {
       this.position.y = this.flyHeight;
     }
     
-    // Load Denis face texture
-    this.loadDenisTexture();
-    
     this.createMesh();
     scene.add(this.mesh);
-  }
-
-  private loadDenisTexture() {
-    try {
-      this.denisFaceTexture = textureLoader.load('/denis.png', 
-        (texture) => {
-          texture.flipY = false;
-          texture.wrapS = THREE.ClampToEdgeWrap;
-          texture.wrapT = THREE.ClampToEdgeWrap;
-          texture.magFilter = THREE.LinearFilter;
-          texture.minFilter = THREE.LinearFilter;
-          texture.rotation = Math.PI;
-          texture.center.set(0.5, 0.5);
-          this.updateDenisFace();
-        },
-        undefined,
-        (error) => {
-          console.warn('Could not load Denis texture:', error);
-          this.denisFaceTexture = null;
-        }
-      );
-    } catch (error) {
-      console.warn('Error loading Denis texture:', error);
-      this.denisFaceTexture = null;
-    }
-  }
-
-  private updateDenisFace() {
-    const head = this.mesh.children.find(child => 
-      child instanceof THREE.Mesh && 
-      child.geometry instanceof THREE.BoxGeometry &&
-      child.position.y > this.config.size * 0.8
-    ) as THREE.Mesh;
-    
-    if (head && this.denisFaceTexture) {
-      const denisMaterial = new THREE.MeshPhongMaterial({
-        map: this.denisFaceTexture,
-        color: 0xffffff,
-        shininess: 30,
-        transparent: false,
-        emissive: 0x111111,
-        emissiveIntensity: 0.1
-      });
-      
-      head.material = denisMaterial;
-    }
   }
 
   private createMesh() {

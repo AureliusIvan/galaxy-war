@@ -314,31 +314,34 @@ export class PathFinder {
   
   static findPath(start: THREE.Vector3, end: THREE.Vector3): THREE.Vector3[] {
     if (!this.grid) {
-      console.warn('Pathfinding grid not initialized, using direct path');
-      return [end]; // Fallback to direct path
+      console.warn("Pathfinder grid not initialized. Returning direct path.");
+      return [end.clone()];
     }
     
-    try {
-      const startGrid = this.worldToGrid(start);
-      const endGrid = this.worldToGrid(end);
-      
-      if (!this.isValidCell(startGrid.x, startGrid.z) || !this.isValidCell(endGrid.x, endGrid.z)) {
-        return [end];
-      }
-      
-      const path = this.aStar(startGrid, endGrid);
-      return path.map(point => this.gridToWorld(point));
-    } catch (error) {
-      console.warn('Pathfinding error:', error);
-      return [end]; // Fallback to direct path
+    // Temporarily disabled for debugging performance.
+    // This will make enemies move in a straight line towards their target.
+    console.log("A* pathfinding is temporarily disabled. Enemies will move in a straight line.");
+    return [end.clone()];
+
+    /*
+    const startPoint = this.worldToGrid(start);
+    const endPoint = this.worldToGrid(end);
+
+    if (!this.isValidCell(startPoint.x, startPoint.z) || !this.isValidCell(endPoint.x, endPoint.z)) {
+      console.warn("Start or end point is outside the valid grid. Returning direct path.");
+      return [end.clone()];
     }
+
+    const path = this.aStar(startPoint, endPoint);
+    return path.map(p => this.gridToWorld(p));
+    */
   }
   
   private static worldToGrid(pos: THREE.Vector3): { x: number, z: number } {
-    const size = Math.floor(this.arenaSize / this.gridSize);
-    const x = Math.floor((pos.x + this.arenaSize / 2) / this.gridSize);
-    const z = Math.floor((pos.z + this.arenaSize / 2) / this.gridSize);
-    return { x: Math.max(0, Math.min(size - 1, x)), z: Math.max(0, Math.min(size - 1, z)) };
+    const half = this.arenaSize / 2;
+    const x = Math.floor((pos.x + half) / this.gridSize);
+    const z = Math.floor((pos.z + half) / this.gridSize);
+    return { x: Math.max(0, Math.min(this.grid.length - 1, x)), z: Math.max(0, Math.min(this.grid[0].length - 1, z)) };
   }
   
   private static gridToWorld(point: { x: number, z: number }): THREE.Vector3 {

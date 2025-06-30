@@ -200,7 +200,7 @@ export class Game {
     }
 
     // Calculate enemies for this wave - starts with 3, increases gradually 
-    this.enemiesInCurrentWave = Math.min(3 + Math.floor(waveNumber * 1.5), 15); // Cap at 15 enemies max (reduced for performance)
+    this.enemiesInCurrentWave = Math.min(5 + Math.floor(waveNumber * 1.8), 25); // Cap at 25 enemies max
     this.initialEnemiesInWave = this.enemiesInCurrentWave;
     
     this.spawnEnemies(waveNumber);
@@ -260,7 +260,7 @@ export class Game {
         const enemy = new Enemy(
           spawnPosition,
           this.scene,
-          Math.floor(waveNumber / 2) + 1, // Difficulty increases every 2 waves
+          Math.floor(waveNumber / 2) + 2, // Difficulty increases every 2 waves, with higher base
           enemyType
         );
         this.enemies.push(enemy);
