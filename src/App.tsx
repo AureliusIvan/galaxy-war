@@ -171,7 +171,7 @@ function App() {
 
       {gameState === 'menu' && (
         <MenuScreen 
-          onStart={startGame} 
+          onStart={() => setGameState('usernameInput')} 
           onShowLeaderboard={() => setGameState('leaderboard')}
         />
       )}
